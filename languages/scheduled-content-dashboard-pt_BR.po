@@ -1,0 +1,291 @@
+# Translation of Scheduled Content Dashboard in Portuguese (Brazil)
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Scheduled Content Dashboard 2.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/scheduled-content-dashboard\n"
+"POT-Creation-Date: 2026-04-21T10:18:57+00:00\n"
+"PO-Revision-Date: 2026-04-21 12:00-0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: pt_BR\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Domain: scheduled-content-dashboard\n"
+
+msgid "Scheduled Content Dashboard"
+msgstr "Scheduled Content Dashboard"
+
+msgid "Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest."
+msgstr "Calendário editorial com reagendamento por arrastar e soltar, widget do painel, correção automática de agendamentos perdidos, contador na barra de administração, API REST e resumo por e-mail opcional."
+
+msgid "Scheduled Content"
+msgstr "Scheduled Content"
+
+msgid "Scheduled"
+msgstr "Agendado"
+
+msgid "Editorial Calendar"
+msgstr "Calendário editorial"
+
+msgid "Calendar"
+msgstr "Calendário"
+
+msgid "Settings"
+msgstr "Configurações"
+
+msgid "Rescheduling…"
+msgstr "Reagendando…"
+
+msgid "Reschedule failed."
+msgstr "Falha ao reagendar."
+
+msgid "Rescheduled."
+msgstr "Reagendado."
+
+msgid "You do not have permission to view this page."
+msgstr "Você não tem permissão para ver esta página."
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Today"
+msgstr "Hoje"
+
+msgid "Next"
+msgstr "Próximo"
+
+msgid "Drag scheduled posts to a different day to reschedule them. Time of day is preserved."
+msgstr "Arraste os posts agendados para outro dia para reagendá-los. O horário é preservado."
+
+msgid "(no title)"
+msgstr "(sem título)"
+
+msgid "Sunday"
+msgstr "Domingo"
+
+msgid "Monday"
+msgstr "Segunda"
+
+msgid "Tuesday"
+msgstr "Terça"
+
+msgid "Wednesday"
+msgstr "Quarta"
+
+msgid "Thursday"
+msgstr "Quinta"
+
+msgid "Friday"
+msgstr "Sexta"
+
+msgid "Saturday"
+msgstr "Sábado"
+
+msgid "Permission denied."
+msgstr "Permissão negada."
+
+msgid "Invalid date."
+msgstr "Data inválida."
+
+msgid "Post is not scheduled."
+msgstr "O post não está agendado."
+
+msgid "Prev"
+msgstr "Ant"
+
+#, php-format
+msgid "%d scheduled"
+msgid_plural "%d scheduled"
+msgstr[0] "%d agendado"
+msgstr[1] "%d agendados"
+
+msgid "Missed"
+msgstr "Perdido"
+
+msgid "Sun"
+msgstr "Dom"
+
+msgid "Mon"
+msgstr "Seg"
+
+msgid "Tue"
+msgstr "Ter"
+
+msgid "Wed"
+msgstr "Qua"
+
+msgid "Thu"
+msgstr "Qui"
+
+msgid "Fri"
+msgstr "Sex"
+
+msgid "Sat"
+msgstr "Sáb"
+
+#, php-format
+msgid "[%s] Scheduled content for today"
+msgstr "[%s] Conteúdo agendado para hoje"
+
+#, php-format
+msgid "[%s] Scheduled content for the week"
+msgstr "[%s] Conteúdo agendado para a semana"
+
+#, php-format
+msgid "%d missed post"
+msgid_plural "%d missed posts"
+msgstr[0] "%d post perdido"
+msgstr[1] "%d posts perdidos"
+
+#, php-format
+msgid "%d scheduled post"
+msgid_plural "%d scheduled posts"
+msgstr[0] "%d post agendado"
+msgstr[1] "%d posts agendados"
+
+#, php-format
+msgid "Sent by Scheduled Content Dashboard on %s"
+msgstr "Enviado pelo Scheduled Content Dashboard em %s"
+
+msgid "Not allowed to publish this post type."
+msgstr "Não é permitido publicar este tipo de post."
+
+msgid "Post not found."
+msgstr "Post não encontrado."
+
+msgid "Reschedule date must be in the future."
+msgstr "A data de reagendamento deve estar no futuro."
+
+msgid "Widget settings"
+msgstr "Configurações do widget"
+
+msgid "Items per group"
+msgstr "Itens por grupo"
+
+msgid "Post types"
+msgstr "Tipos de post"
+
+msgid "Include drafts"
+msgstr "Incluir rascunhos"
+
+msgid "Default view"
+msgstr "Visualização padrão"
+
+msgid "Auto-fix missed schedules"
+msgstr "Corrigir agendamentos perdidos automaticamente"
+
+msgid "Email digest"
+msgstr "Resumo por e-mail"
+
+msgid "Send digest"
+msgstr "Enviar resumo"
+
+msgid "Frequency"
+msgstr "Frequência"
+
+msgid "Recipients"
+msgstr "Destinatários"
+
+msgid "Optional email summary of scheduled, missed, and upcoming posts."
+msgstr "Resumo por e-mail opcional de posts agendados, perdidos e próximos."
+
+msgid "Maximum number of scheduled items shown in the widget."
+msgstr "Número máximo de itens agendados exibidos no widget."
+
+msgid "Select which post types to include in the widget."
+msgstr "Selecione quais tipos de post incluir no widget."
+
+msgid "Show drafts alongside scheduled posts in their own group."
+msgstr "Mostra rascunhos ao lado dos posts agendados em seu próprio grupo."
+
+msgid "List"
+msgstr "Lista"
+
+msgid "Each user can override their view from the widget."
+msgstr "Cada usuário pode alterar sua visualização pelo widget."
+
+msgid "Automatically publish scheduled posts WordPress failed to publish on time."
+msgstr "Publica automaticamente os posts agendados que o WordPress não conseguiu publicar no horário."
+
+msgid "Send an email summary on a schedule."
+msgstr "Envia um resumo por e-mail de forma agendada."
+
+msgid "Daily"
+msgstr "Diário"
+
+msgid "Weekly"
+msgstr "Semanal"
+
+msgid "One or more emails, comma or newline separated. Defaults to the site admin email if empty."
+msgstr "Um ou mais e-mails, separados por vírgula ou quebra de linha. Se vazio, usa o e-mail do administrador do site."
+
+msgid "No scheduled content found."
+msgstr "Nenhum conteúdo agendado encontrado."
+
+msgid "Filter"
+msgstr "Filtrar"
+
+msgid "All post types"
+msgstr "Todos os tipos"
+
+msgid "All authors"
+msgstr "Todos os autores"
+
+msgid "Apply"
+msgstr "Aplicar"
+
+msgid "Clear"
+msgstr "Limpar"
+
+msgid "Open full calendar"
+msgstr "Abrir calendário completo"
+
+msgid "Show all authors"
+msgstr "Mostrar todos os autores"
+
+msgid "Mine only"
+msgstr "Apenas meus"
+
+msgid "Post published."
+msgstr "Post publicado."
+
+msgid "Could not publish post."
+msgstr "Não foi possível publicar o post."
+
+#, php-format
+msgid "Missed schedule (%d)"
+msgid_plural "Missed schedule (%d)"
+msgstr[0] "Agendamento perdido (%d)"
+msgstr[1] "Agendamentos perdidos (%d)"
+
+#, php-format
+msgid "Drafts (%d)"
+msgid_plural "Drafts (%d)"
+msgstr[0] "Rascunho (%d)"
+msgstr[1] "Rascunhos (%d)"
+
+#, php-format
+msgid " — by %s"
+msgstr " — por %s"
+
+msgid "Publish now"
+msgstr "Publicar agora"
+
+msgid "Tomorrow"
+msgstr "Amanhã"
+
+msgid "This Week"
+msgstr "Esta semana"
+
+msgid "Next Week"
+msgstr "Próxima semana"
+
+msgid "Later"
+msgstr "Depois"
+
+#, php-format
+msgid "(%d missed)"
+msgid_plural "(%d missed)"
+msgstr[0] "(%d perdido)"
+msgstr[1] "(%d perdidos)"
