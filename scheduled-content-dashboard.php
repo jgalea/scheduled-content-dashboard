@@ -11,7 +11,7 @@
  * Plugin Name:       Scheduled Content Dashboard
  * Plugin URI:        https://wordpress.org/plugins/scheduled-content-dashboard/
  * Description:       Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.
- * Version:           2.0.0
+ * Version:           2.0.1
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            jeangalea
@@ -34,7 +34,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-admin-page.php';
 
 class Scheduled_Content_Dashboard {
 
-    const VERSION             = '2.0.0';
+    const VERSION             = '2.0.1';
     const MINE_ONLY_META_KEY  = '_scd_mine_only';
     const VIEW_META_KEY       = '_scd_view';
     const AUTO_FIX_TRANSIENT  = 'scd_last_auto_fix';
@@ -169,6 +169,15 @@ class Scheduled_Content_Dashboard {
                 letter-spacing: 0.5px;
             }
             .scheduled-content-empty { padding: 20px; text-align: center; color: #787c82; }
+            .scheduled-content-more {
+                margin-top: 12px;
+                padding-top: 10px;
+                border-top: 1px solid #f0f0f1;
+                text-align: center;
+                font-size: 12px;
+            }
+            .scheduled-content-more a { text-decoration: none; color: #2271b1; font-weight: 500; }
+            .scheduled-content-more a:hover { color: #135e96; text-decoration: underline; }
             .scheduled-content-group { margin-bottom: 15px; }
             .scheduled-content-group:last-child { margin-bottom: 0; }
             .scheduled-content-group-title {
@@ -563,7 +572,32 @@ class Scheduled_Content_Dashboard {
             $this->render_drafts_group( $drafts );
         }
 
+        $this->render_more_footer( count( $scheduled ) + count( $missed ) );
+
         echo '</div>';
+    }
+
+    private function render_more_footer( $shown_count ) {
+        $counts = $this->get_counts();
+        $total  = (int) $counts['total'];
+        if ( $total <= $shown_count ) {
+            return;
+        }
+        $remaining = $total - $shown_count;
+        $calendar_url = admin_url( 'admin.php?page=' . SCD_Admin_Page::PAGE_SLUG );
+        ?>
+        <div class="scheduled-content-more">
+            <a href="<?php echo esc_url( $calendar_url ); ?>">
+                <?php
+                printf(
+                    /* translators: %d: number of additional scheduled posts not shown in the widget. */
+                    esc_html( _n( '+%d more scheduled — open full calendar', '+%d more scheduled — open full calendar', $remaining, 'scheduled-content-dashboard' ) ),
+                    $remaining
+                );
+                ?>
+            </a>
+        </div>
+        <?php
     }
 
     private function render_calendar_view() {

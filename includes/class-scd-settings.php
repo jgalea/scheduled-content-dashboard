@@ -27,7 +27,7 @@ class SCD_Settings {
 
     public static function defaults() {
         return array(
-            'item_limit'          => 50,
+            'item_limit'          => 15,
             'included_post_types' => array(),
             'show_drafts'         => 0,
             'default_view'        => 'list',
@@ -213,7 +213,7 @@ class SCD_Settings {
             '<input type="number" name="%1$s[item_limit]" value="%2$d" min="1" max="500" class="small-text"> <p class="description">%3$s</p>',
             esc_attr( self::OPTION_NAME ),
             esc_attr( $value ),
-            esc_html__( 'Maximum number of scheduled items shown in the widget.', 'scheduled-content-dashboard' )
+            esc_html__( 'Maximum number of scheduled items shown in the dashboard widget. A link to the full editorial calendar is shown when more items exist.', 'scheduled-content-dashboard' )
         );
     }
 
