@@ -90,37 +90,46 @@ class SCD_Admin_Page {
                 align-items: center;
                 margin: 16px 0;
             }
-            .scd-cal-toolbar h2 { margin: 0; }
+            .scd-cal-toolbar h1 { margin: 0; font-size: 23px; }
             .scd-cal-nav a {
                 text-decoration: none;
-                padding: 4px 10px;
+                padding: 5px 12px;
                 background: #fff;
                 border: 1px solid #c3c4c7;
                 border-radius: 3px;
                 margin-left: 4px;
+                color: #2c3338;
+                font-size: 13px;
             }
-            .scd-cal-nav a:hover { background: #f0f0f1; }
+            .scd-cal-nav a:hover { background: #f0f0f1; border-color: #8c8f94; }
+
             .scd-cal-grid {
                 display: grid;
                 grid-template-columns: repeat(7, minmax(0, 1fr));
                 grid-auto-rows: 140px;
-                gap: 1px;
-                background: #c3c4c7;
-                border: 1px solid #c3c4c7;
+                background: #fff;
+                border-left: 1px solid #c3c4c7;
+                border-top: 1px solid #c3c4c7;
+                box-shadow: 0 1px 1px rgba(0,0,0,0.04);
             }
+            .scd-cal-grid > * {
+                border-right: 1px solid #c3c4c7;
+                border-bottom: 1px solid #c3c4c7;
+            }
+
             .scd-cal-dow {
-                background: #f6f7f7;
-                padding: 8px;
+                background: #1d2327;
+                color: #fff;
+                padding: 10px 8px;
                 text-align: center;
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 600;
-                color: #50575e;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
-                grid-row: auto;
+                letter-spacing: 0.8px;
                 height: auto;
+                grid-row: 1;
             }
-            .scd-cal-grid > .scd-cal-dow { grid-row: 1; height: auto; }
+
             .scd-cal-day {
                 background: #fff;
                 height: 140px;
@@ -132,7 +141,31 @@ class SCD_Admin_Page {
                 display: flex;
                 flex-direction: column;
                 min-width: 0;
+                transition: background 0.1s ease;
             }
+            .scd-cal-day--weekend { background: #f9fafb; }
+            .scd-cal-day--other-month { background: #f0f0f1; color: #c3c4c7; }
+            .scd-cal-day--other-month .scd-cal-day-number { color: #a7aaad; }
+            .scd-cal-day--today {
+                background: #f0f6fc;
+                box-shadow: inset 0 3px 0 #2271b1;
+            }
+            .scd-cal-day--today .scd-cal-day-number {
+                color: #2271b1;
+                font-weight: 700;
+            }
+            .scd-cal-day--missed { background: #fcf0f1; }
+            .scd-cal-day--missed.scd-cal-day--today { background: linear-gradient(to bottom, #fcf0f1, #fcf0f1); box-shadow: inset 0 3px 0 #b32d2e; }
+            .scd-cal-day--today.scd-cal-day--missed .scd-cal-day-number { color: #b32d2e; }
+
+            .scd-cal-day-number {
+                font-weight: 600;
+                font-size: 14px;
+                color: #1d2327;
+                margin-bottom: 5px;
+                line-height: 1;
+            }
+
             .scd-cal-day-items {
                 flex: 1 1 auto;
                 overflow: hidden;
@@ -141,51 +174,72 @@ class SCD_Admin_Page {
             .scd-cal-day-more {
                 flex: 0 0 auto;
                 font-size: 11px;
-                color: #787c82;
-                padding-top: 2px;
+                color: #50575e;
+                padding-top: 3px;
+                font-weight: 500;
             }
-            .scd-cal-day-more a { color: #2271b1; text-decoration: none; }
-            .scd-cal-day--other-month { background: #fafafa; color: #c3c4c7; }
-            .scd-cal-day--today { background: #f0f6fc; }
-            .scd-cal-day--today .scd-cal-day-number { color: #2271b1; font-weight: 600; }
-            .scd-cal-day--missed { background: #fcf0f1; }
-            .scd-cal-day-number {
-                font-weight: 600;
-                font-size: 13px;
-                color: #1d2327;
-                margin-bottom: 4px;
+
+            .scd-cal-day-over {
+                background: #e7f3fb !important;
+                outline: 2px dashed #2271b1;
+                outline-offset: -2px;
             }
-            .scd-cal-day-over { outline: 3px solid #2271b1; outline-offset: -3px; }
+
             .scd-cal-item {
                 background: #2271b1;
                 color: #fff;
-                padding: 3px 6px;
-                margin-bottom: 2px;
+                padding: 3px 7px;
+                margin-bottom: 3px;
                 border-radius: 3px;
                 font-size: 11px;
+                line-height: 1.4;
                 cursor: move;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
+                box-shadow: 0 1px 1px rgba(0,0,0,0.08);
             }
             .scd-cal-item a { color: #fff; text-decoration: none; }
+            .scd-cal-item:hover { background: #135e96; }
             .scd-cal-item--missed { background: #b32d2e; }
-            .scd-cal-item.ui-draggable-dragging { opacity: 0.7; }
+            .scd-cal-item--missed:hover { background: #8a2324; }
+            .scd-cal-item.ui-draggable-dragging {
+                opacity: 0.85;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                transform: rotate(-1deg);
+            }
+
             .scd-cal-feedback {
                 position: fixed;
                 bottom: 20px;
                 right: 20px;
                 background: #1d2327;
                 color: #fff;
-                padding: 8px 14px;
-                border-radius: 3px;
+                padding: 10px 16px;
+                border-radius: 4px;
                 font-size: 13px;
                 z-index: 9999;
                 display: none;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.25);
             }
             .scd-cal-feedback--success { background: #00a32a; }
             .scd-cal-feedback--error { background: #b32d2e; }
-            .scd-cal-empty-hint { color: #c3c4c7; font-size: 11px; margin-top: 4px; }
+
+            .scd-cal-legend {
+                display: flex;
+                gap: 16px;
+                margin-top: 12px;
+                font-size: 12px;
+                color: #50575e;
+            }
+            .scd-cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+            .scd-cal-legend .swatch {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border-radius: 2px;
+                border: 1px solid rgba(0,0,0,0.1);
+            }
         ';
     }
 
@@ -244,6 +298,11 @@ class SCD_Admin_Page {
                     $date_key = sprintf( '%04d-%02d-%02d', $year, $month_num, $day );
                     $items    = $items_by_day[ $date_key ] ?? array();
                     $classes  = array( 'scd-cal-day' );
+
+                    $dow = (int) wp_date( 'w', strtotime( $date_key ) );
+                    if ( 0 === $dow || 6 === $dow ) {
+                        $classes[] = 'scd-cal-day--weekend';
+                    }
                     if ( $date_key === $today ) {
                         $classes[] = 'scd-cal-day--today';
                     }
@@ -286,6 +345,12 @@ class SCD_Admin_Page {
                     echo '<div class="scd-cal-day scd-cal-day--other-month"></div>';
                 }
                 ?>
+            </div>
+
+            <div class="scd-cal-legend">
+                <span><span class="swatch" style="background:#2271b1"></span><?php esc_html_e( 'Scheduled', 'scheduled-content-dashboard' ); ?></span>
+                <span><span class="swatch" style="background:#b32d2e"></span><?php esc_html_e( 'Missed schedule', 'scheduled-content-dashboard' ); ?></span>
+                <span><span class="swatch" style="background:#f0f6fc; border-color:#2271b1"></span><?php esc_html_e( 'Today', 'scheduled-content-dashboard' ); ?></span>
             </div>
 
             <div id="scd-cal-feedback" class="scd-cal-feedback" role="status" aria-live="polite"></div>
