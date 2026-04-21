@@ -10,8 +10,8 @@
  * @wordpress-plugin
  * Plugin Name:       Scheduled Content Dashboard
  * Plugin URI:        https://wordpress.org/plugins/scheduled-content-dashboard/
- * Description:       Displays all scheduled posts, pages, and custom post types on the WordPress dashboard, with missed-schedule detection, auto-fix, admin bar counter, calendar view, and per-user filtering.
- * Version:           1.2.0
+ * Description:       Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.
+ * Version:           2.0.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            jeangalea
@@ -28,10 +28,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-settings.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-calendar.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-digest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-rest.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-admin-page.php';
 
 class Scheduled_Content_Dashboard {
 
-    const VERSION             = '1.2.0';
+    const VERSION             = '2.0.0';
     const MINE_ONLY_META_KEY  = '_scd_mine_only';
     const VIEW_META_KEY       = '_scd_view';
     const AUTO_FIX_TRANSIENT  = 'scd_last_auto_fix';
@@ -51,6 +54,11 @@ class Scheduled_Content_Dashboard {
 
     private function __construct() {
         SCD_Settings::init();
+        SCD_Digest::init();
+        SCD_Rest::init();
+        SCD_Admin_Page::init();
+
+        register_deactivation_hook( __FILE__, array( __CLASS__, 'deactivate' ) );
 
         add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles' ) );
@@ -67,6 +75,10 @@ class Scheduled_Content_Dashboard {
             __( 'Scheduled Content', 'scheduled-content-dashboard' ),
             array( $this, 'render_widget' )
         );
+    }
+
+    public static function deactivate() {
+        wp_clear_scheduled_hook( SCD_Digest::HOOK );
     }
 
     public function enqueue_styles( $hook ) {
@@ -596,6 +608,9 @@ class Scheduled_Content_Dashboard {
                 </details>
             </div>
             <div class="scd-header-right">
+                <a class="scheduled-content-toggle" href="<?php echo esc_url( admin_url( 'admin.php?page=' . SCD_Admin_Page::PAGE_SLUG ) ); ?>">
+                    <?php esc_html_e( 'Open full calendar', 'scheduled-content-dashboard' ); ?>
+                </a>
                 <span class="scd-view-switch">
                     <?php $this->render_view_toggle_button( 'list', $view ); ?>
                     <?php $this->render_view_toggle_button( 'calendar', $view ); ?>

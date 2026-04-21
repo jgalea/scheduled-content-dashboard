@@ -14,6 +14,7 @@ function scd_uninstall_cleanup() {
 
     delete_option( 'scheduled_content_dashboard_settings' );
     delete_transient( 'scd_last_auto_fix' );
+    wp_clear_scheduled_hook( 'scd_send_digest' );
 
     $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => '_scd_mine_only' ) );
     $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => '_scd_view' ) );
