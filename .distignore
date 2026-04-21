@@ -3,4 +3,5 @@
 .gitignore
 .distignore
 .claude
+README.md
 *.zip
