@@ -27,7 +27,7 @@ class SCD_Settings {
 
     public static function defaults() {
         return array(
-            'item_limit'          => 15,
+            'item_limit'          => 7,
             'included_post_types' => array(),
             'show_drafts'         => 0,
             'default_view'        => 'list',

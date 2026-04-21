@@ -4,7 +4,7 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -115,6 +115,9 @@ Yes. Each site has its own widget showing that site's scheduled content.
 3. Admin bar counter showing scheduled post count
 
 == Changelog ==
+
+= 2.0.3 =
+* Changed: Widget item limit default lowered from 15 to 7 — keeps the widget tight by default, power users can raise it from settings
 
 = 2.0.2 =
 * Changed: Shortened the wp.org short description to fit the 150-character cap (previously truncated on import)
