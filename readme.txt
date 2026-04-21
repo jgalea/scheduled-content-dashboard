@@ -4,7 +4,7 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,14 +19,17 @@ Most scheduling plugins bolt on social sharing, complex settings, and marketing 
 = Features =
 
 * **Dashboard widget** — scheduled content grouped by Today, Tomorrow, This Week, Next Week, and Later
+* **Mini calendar view** — switch the widget to a month grid with dots on days that have scheduled posts
 * **Missed-schedule detection** — posts stuck in `future` status past their date are flagged in red
 * **Auto-fix missed schedules** — the plugin quietly republishes stuck posts on admin page loads (most competitors gate this in a paid tier)
 * **One-click "Publish now"** — manually push any missed post live from the widget
 * **Admin bar counter** — see how many posts are scheduled (and if any are missed) from anywhere in the admin
 * **"Mine only" toggle** — multi-author sites can filter the widget to the current user's content
+* **Post type + author filters** — drill down inside the widget without leaving the dashboard
+* **Drafts in widget (optional)** — show drafts alongside scheduled items
+* **Settings page** — configure item limit, which post types to include, default view, and auto-fix
 * **All public post types** — posts, pages, products, events, custom post types
 * **Quick edit links** — click any title to go straight to the edit screen
-* **Zero config** — no settings page, no onboarding, just install and use
 * **Privacy-friendly** — no tracking, no external requests, no cookies
 
 = Use cases =
@@ -101,6 +104,14 @@ Yes. Each site has its own widget showing that site's scheduled content.
 
 == Changelog ==
 
+= 1.2.0 =
+* Added: Settings page (Settings > Scheduled Content) for item limit, included post types, default view, drafts, auto-fix toggle
+* Added: Mini month calendar view with per-user preference, dots for days with scheduled posts, missed-day highlighting, and day detail
+* Added: Post type + author filter dropdowns in the widget (collapsible)
+* Added: Optional drafts group alongside scheduled content
+* Added: "List / Calendar" view switcher per user
+* Changed: Auto-fix now also respects the settings UI toggle in addition to the filter
+
 = 1.1.0 =
 * Added: Missed-schedule detection with red flagging in the widget
 * Added: Auto-fix missed scheduled posts (admin-page-load cron, filterable)
@@ -116,6 +127,9 @@ Yes. Each site has its own widget showing that site's scheduled content.
 * Support for all public post types
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Adds settings page, mini calendar view, post type and author filters, and optional drafts display. Existing users don't need to change anything — defaults match previous behaviour.
 
 = 1.1.0 =
 Adds missed-schedule detection with free auto-fix, admin bar counter, and per-user filtering. Auto-fix is on by default — disable with the scheduled_content_dashboard_auto_fix_missed filter if you want manual control.

@@ -12,9 +12,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 function scd_uninstall_cleanup() {
     global $wpdb;
 
-    $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => '_scd_mine_only' ) );
-
+    delete_option( 'scheduled_content_dashboard_settings' );
     delete_transient( 'scd_last_auto_fix' );
+
+    $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => '_scd_mine_only' ) );
+    $wpdb->delete( $wpdb->usermeta, array( 'meta_key' => '_scd_view' ) );
 }
 
 if ( is_multisite() ) {
