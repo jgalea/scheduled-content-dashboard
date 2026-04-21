@@ -102,7 +102,8 @@ class SCD_Admin_Page {
             .scd-cal-nav a:hover { background: #f0f0f1; }
             .scd-cal-grid {
                 display: grid;
-                grid-template-columns: repeat(7, 1fr);
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                grid-auto-rows: 140px;
                 gap: 1px;
                 background: #c3c4c7;
                 border: 1px solid #c3c4c7;
@@ -116,15 +117,34 @@ class SCD_Admin_Page {
                 color: #50575e;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
+                grid-row: auto;
+                height: auto;
             }
+            .scd-cal-grid > .scd-cal-dow { grid-row: 1; height: auto; }
             .scd-cal-day {
                 background: #fff;
-                min-height: 120px;
+                height: 140px;
                 padding: 6px 8px;
                 position: relative;
                 font-size: 12px;
                 color: #50575e;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
             }
+            .scd-cal-day-items {
+                flex: 1 1 auto;
+                overflow: hidden;
+                min-height: 0;
+            }
+            .scd-cal-day-more {
+                flex: 0 0 auto;
+                font-size: 11px;
+                color: #787c82;
+                padding-top: 2px;
+            }
+            .scd-cal-day-more a { color: #2271b1; text-decoration: none; }
             .scd-cal-day--other-month { background: #fafafa; color: #c3c4c7; }
             .scd-cal-day--today { background: #f0f6fc; }
             .scd-cal-day--today .scd-cal-day-number { color: #2271b1; font-weight: 600; }
@@ -219,6 +239,7 @@ class SCD_Admin_Page {
                     echo '<div class="scd-cal-day scd-cal-day--other-month"></div>';
                 }
 
+                $per_day_cap = 3;
                 for ( $day = 1; $day <= $days_in; $day++ ) {
                     $date_key = sprintf( '%04d-%02d-%02d', $year, $month_num, $day );
                     $items    = $items_by_day[ $date_key ] ?? array();
@@ -229,17 +250,33 @@ class SCD_Admin_Page {
                     if ( $this->has_missed( $items ) ) {
                         $classes[] = 'scd-cal-day--missed';
                     }
+
+                    $visible_items  = array_slice( $items, 0, $per_day_cap );
+                    $overflow_count = max( 0, count( $items ) - $per_day_cap );
                     ?>
                     <div class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-date="<?php echo esc_attr( $date_key ); ?>">
                         <div class="scd-cal-day-number"><?php echo (int) $day; ?></div>
-                        <?php foreach ( $items as $item ) : ?>
-                            <div class="scd-cal-item <?php echo $item['is_missed'] ? 'scd-cal-item--missed' : ''; ?>"
-                                data-post-id="<?php echo (int) $item['id']; ?>"
-                                data-time="<?php echo esc_attr( $item['time'] ); ?>"
-                                title="<?php echo esc_attr( $item['time_formatted'] . ' · ' . $item['type_label'] . ' · ' . $item['author'] ); ?>">
-                                <a href="<?php echo esc_url( $item['edit_link'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
+                        <div class="scd-cal-day-items">
+                            <?php foreach ( $visible_items as $item ) : ?>
+                                <div class="scd-cal-item <?php echo $item['is_missed'] ? 'scd-cal-item--missed' : ''; ?>"
+                                    data-post-id="<?php echo (int) $item['id']; ?>"
+                                    data-time="<?php echo esc_attr( $item['time'] ); ?>"
+                                    title="<?php echo esc_attr( $item['time_formatted'] . ' · ' . $item['type_label'] . ' · ' . $item['author'] ); ?>">
+                                    <a href="<?php echo esc_url( $item['edit_link'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if ( $overflow_count > 0 ) : ?>
+                            <div class="scd-cal-day-more">
+                                <?php
+                                printf(
+                                    /* translators: %d: number of additional items on the day. */
+                                    esc_html( _n( '+%d more', '+%d more', $overflow_count, 'scheduled-content-dashboard' ) ),
+                                    $overflow_count
+                                );
+                                ?>
                             </div>
-                        <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                     <?php
                 }
