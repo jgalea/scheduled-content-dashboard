@@ -60,6 +60,7 @@ class Scheduled_Content_Dashboard {
 
         register_deactivation_hook( __FILE__, array( __CLASS__, 'deactivate' ) );
 
+        add_action( 'init', array( $this, 'load_textdomain' ) );
         add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_styles' ) );
         add_action( 'admin_bar_menu', array( $this, 'add_admin_bar_counter' ), 90 );
@@ -74,6 +75,14 @@ class Scheduled_Content_Dashboard {
             'scheduled_content_widget',
             __( 'Scheduled Content', 'scheduled-content-dashboard' ),
             array( $this, 'render_widget' )
+        );
+    }
+
+    public function load_textdomain() {
+        load_plugin_textdomain(
+            'scheduled-content-dashboard',
+            false,
+            dirname( plugin_basename( __FILE__ ) ) . '/languages'
         );
     }
 
