@@ -4,11 +4,11 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.0
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Редакционный календарь с перетаскиванием для переноса, виджет консоли, автоисправление пропущенных публикаций, REST API и необязательный email-дайджест. Без социальных сетей, без маркетинга, без лишнего веса.
+Виджет консоли + редакционный календарь с перетаскиванием. Автоисправление пропущенных публикаций. REST API и email-дайджест. Без лишнего.
 
 == Description ==
 

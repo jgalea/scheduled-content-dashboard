@@ -4,11 +4,11 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, REST API, and optional email digest. No social sharing, no marketing, no bloat.
+Dashboard widget + full editorial calendar with drag-and-drop. Auto-fixes missed schedules. REST API and optional email digest. No bloat.
 
 == Description ==
 
@@ -115,6 +115,9 @@ Yes. Each site has its own widget showing that site's scheduled content.
 3. Admin bar counter showing scheduled post count
 
 == Changelog ==
+
+= 2.0.2 =
+* Changed: Shortened the wp.org short description to fit the 150-character cap (previously truncated on import)
 
 = 2.0.1 =
 * Changed: Widget item limit default lowered from 50 to 15 — the dashboard widget no longer balloons to full height on sites with a heavy schedule

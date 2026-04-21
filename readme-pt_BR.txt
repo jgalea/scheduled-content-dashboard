@@ -4,11 +4,11 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.0
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Calendário editorial com reagendamento por arrastar e soltar, widget do painel, correção automática de agendamentos perdidos, API REST e resumo por e-mail opcional. Sem redes sociais, sem marketing, sem inchaço.
+Widget do painel + calendário editorial com arrastar e soltar. Corrige agendamentos perdidos. API REST e resumo por e-mail. Sem inchaço.
 
 == Description ==
 
