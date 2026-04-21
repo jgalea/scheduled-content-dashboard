@@ -4,7 +4,7 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.3
+Stable tag: 2.0.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -115,6 +115,13 @@ Yes. Each site has its own widget showing that site's scheduled content.
 3. Admin bar counter showing scheduled post count
 
 == Changelog ==
+
+= 2.0.5 =
+* Changed: Admin bar counter now links to the full editorial calendar page instead of the dashboard widget
+* Fixed: Editorial calendar row heights were variable; each day cell is now a fixed 140px and caps at 3 visible items with a "+N more" indicator
+
+= 2.0.4 =
+* Fixed: Editorial calendar row heights were variable depending on how many posts were scheduled per day (superseded by 2.0.5)
 
 = 2.0.3 =
 * Changed: Widget item limit default lowered from 15 to 7 — keeps the widget tight by default, power users can raise it from settings
