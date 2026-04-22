@@ -42,6 +42,7 @@ class Scheduled_Content_Dashboard {
     const PUBLISH_NOW_ACTION  = 'scd_publish_now';
     const TOGGLE_MINE_ACTION  = 'scd_toggle_mine';
     const TOGGLE_VIEW_ACTION  = 'scd_toggle_view';
+    const AJAX_REFRESH_ACTION = 'scd_refresh_widget';
 
     private static $instance = null;
 
@@ -67,6 +68,7 @@ class Scheduled_Content_Dashboard {
         add_action( 'admin_post_' . self::PUBLISH_NOW_ACTION, array( $this, 'handle_publish_now' ) );
         add_action( 'admin_post_' . self::TOGGLE_MINE_ACTION, array( $this, 'handle_mine_toggle' ) );
         add_action( 'admin_post_' . self::TOGGLE_VIEW_ACTION, array( $this, 'handle_view_toggle' ) );
+        add_action( 'wp_ajax_' . self::AJAX_REFRESH_ACTION, array( $this, 'handle_ajax_refresh' ) );
         add_action( 'admin_init', array( $this, 'maybe_auto_fix_missed' ) );
         add_action( 'admin_init', array( $this, 'redirect_legacy_settings_url' ) );
     }
@@ -98,6 +100,26 @@ class Scheduled_Content_Dashboard {
             return;
         }
         wp_add_inline_style( 'dashboard', $this->get_widget_styles() );
+
+        if ( $is_dashboard ) {
+            wp_enqueue_script(
+                'scd-widget',
+                plugins_url( 'assets/js/widget.js', __FILE__ ),
+                array(),
+                self::VERSION,
+                true
+            );
+            wp_localize_script(
+                'scd-widget',
+                'scdWidget',
+                array(
+                    'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+                    'nonce'       => wp_create_nonce( self::AJAX_REFRESH_ACTION ),
+                    'action'      => self::AJAX_REFRESH_ACTION,
+                    'loadingText' => __( 'Refreshing…', 'scheduled-content-dashboard' ),
+                )
+            );
+        }
     }
 
     private function get_widget_styles() {
@@ -656,7 +678,7 @@ class Scheduled_Content_Dashboard {
                         </select>
                         <button type="submit" class="button button-small"><?php esc_html_e( 'Apply', 'scheduled-content-dashboard' ); ?></button>
                         <?php if ( $filters['type'] || $filters['author'] ) : ?>
-                            <a href="<?php echo esc_url( admin_url( 'index.php' ) ); ?>"><?php esc_html_e( 'Clear', 'scheduled-content-dashboard' ); ?></a>
+                            <a class="scd-filters-clear" href="<?php echo esc_url( admin_url( 'index.php' ) ); ?>"><?php esc_html_e( 'Clear', 'scheduled-content-dashboard' ); ?></a>
                         <?php endif; ?>
                     </form>
                 </details>
@@ -669,7 +691,7 @@ class Scheduled_Content_Dashboard {
                     <?php $this->render_view_toggle_button( 'list', $view ); ?>
                     <?php $this->render_view_toggle_button( 'calendar', $view ); ?>
                 </span>
-                <form method="post" action="<?php echo esc_url( $action_url ); ?>">
+                <form method="post" action="<?php echo esc_url( $action_url ); ?>" data-mine-only="<?php echo $mine_only ? '1' : '0'; ?>">
                     <?php wp_nonce_field( self::TOGGLE_MINE_ACTION ); ?>
                     <input type="hidden" name="action" value="<?php echo esc_attr( self::TOGGLE_MINE_ACTION ); ?>">
                     <button type="submit" class="scheduled-content-toggle">
@@ -1006,6 +1028,54 @@ class Scheduled_Content_Dashboard {
 
         wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'index.php' ) );
         exit;
+    }
+
+    private function render_widget_to_string() {
+        ob_start();
+        $this->render_widget();
+        return (string) ob_get_clean();
+    }
+
+    public function handle_ajax_refresh() {
+        check_ajax_referer( self::AJAX_REFRESH_ACTION, 'nonce' );
+
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
+        }
+
+        $user_id = get_current_user_id();
+
+        if ( isset( $_POST['view'] ) ) {
+            $view = sanitize_key( wp_unslash( $_POST['view'] ) );
+            if ( in_array( $view, array( 'list', 'calendar' ), true ) && $user_id ) {
+                update_user_meta( $user_id, self::VIEW_META_KEY, $view );
+            }
+        }
+
+        if ( isset( $_POST['mine_only'] ) ) {
+            $mine = '1' === (string) $_POST['mine_only'] ? '1' : '0';
+            if ( $user_id ) {
+                update_user_meta( $user_id, self::MINE_ONLY_META_KEY, $mine );
+            }
+        }
+
+        // Filter params are read from $_GET inside the render pipeline. Copy
+        // them from POST into $_GET so render_widget() sees them as if they
+        // were query-string.
+        foreach ( array( 'scd_type', 'scd_author', 'scd_month', 'scd_day' ) as $key ) {
+            if ( array_key_exists( $key, $_POST ) ) {
+                $_GET[ $key ] = wp_unslash( $_POST[ $key ] );
+            } else {
+                unset( $_GET[ $key ] );
+            }
+        }
+
+        wp_send_json_success(
+            array(
+                'html'  => $this->render_widget_to_string(),
+                'nonce' => wp_create_nonce( self::AJAX_REFRESH_ACTION ),
+            )
+        );
     }
 
     public function redirect_legacy_settings_url() {
