@@ -101,13 +101,12 @@ class SCD_Admin_Page {
                 grid-template-columns: repeat(7, minmax(0, 1fr));
                 grid-auto-rows: 140px;
                 background: #fff;
-                border-left: 1px solid #c3c4c7;
-                border-top: 1px solid #c3c4c7;
+                border-top: 1px solid #dadce0;
+                border-left: 1px solid #dadce0;
                 box-shadow: 0 1px 1px rgba(0,0,0,0.04);
             }
             .scd-cal-grid > * {
-                border-right: 1px solid #c3c4c7;
-                border-bottom: 1px solid #c3c4c7;
+                box-sizing: border-box;
             }
 
             .scd-cal-dow {
@@ -121,6 +120,8 @@ class SCD_Admin_Page {
                 letter-spacing: 0.4px;
                 height: auto;
                 grid-row: 1;
+                border-right: 1px solid #dadce0;
+                border-bottom: 1px solid #dadce0;
             }
 
             .scd-cal-day {
@@ -135,6 +136,8 @@ class SCD_Admin_Page {
                 flex-direction: column;
                 min-width: 0;
                 transition: background 0.1s ease;
+                border-right: 1px solid #dadce0;
+                border-bottom: 1px solid #dadce0;
             }
             .scd-cal-day--weekend { background: #f9fafb; }
             .scd-cal-day--other-month { background: #f0f0f1; color: #c3c4c7; }
@@ -221,9 +224,7 @@ class SCD_Admin_Page {
             .scd-cal-legend {
                 display: flex;
                 gap: 16px;
-                margin-top: 24px;
-                padding-top: 16px;
-                border-top: 1px solid #dcdcde;
+                margin-top: 16px;
                 font-size: 12px;
                 color: #50575e;
             }
