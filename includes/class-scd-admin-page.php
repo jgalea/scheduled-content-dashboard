@@ -111,14 +111,14 @@ class SCD_Admin_Page {
             }
 
             .scd-cal-dow {
-                background: #1d2327;
-                color: #fff;
-                padding: 10px 8px;
+                background: #f6f7f7;
+                color: #50575e;
+                padding: 6px 8px;
                 text-align: center;
                 font-size: 11px;
                 font-weight: 600;
                 text-transform: uppercase;
-                letter-spacing: 0.8px;
+                letter-spacing: 0.4px;
                 height: auto;
                 grid-row: 1;
             }
@@ -221,7 +221,9 @@ class SCD_Admin_Page {
             .scd-cal-legend {
                 display: flex;
                 gap: 16px;
-                margin-top: 12px;
+                margin-top: 24px;
+                padding-top: 16px;
+                border-top: 1px solid #dcdcde;
                 font-size: 12px;
                 color: #50575e;
             }
