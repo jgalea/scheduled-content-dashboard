@@ -4,7 +4,7 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.6
+Stable tag: 2.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -115,6 +115,12 @@ Yes. Each site has its own widget showing that site's scheduled content.
 3. Admin bar counter showing scheduled post count
 
 == Changelog ==
+
+= 2.0.7 =
+* Dashboard widget switching view, toggling "Mine only", or applying filters no longer reloads the whole page — swaps content in place.
+* Fresh installs now default to the Post type only. Page, Media, and CPTs are unchecked by default.
+* Settings page now lives under Scheduled → Settings (was jumping to WP Settings). Old URL redirects automatically.
+* Editorial calendar: softer day-of-week header, legend has room to breathe.
 
 = 2.0.6 =
 * Changed: Editorial calendar visual redesign — solid dark header row, proper 1px borders on every cell, today cell gets a blue top-bar marker, weekends lightly shaded, other-month days clearly faded, missed days highlighted red
