@@ -180,9 +180,10 @@ class SCD_Settings {
     }
 
     public function add_menu() {
-        add_options_page(
-            __( 'Scheduled Content', 'scheduled-content-dashboard' ),
-            __( 'Scheduled Content', 'scheduled-content-dashboard' ),
+        add_submenu_page(
+            SCD_Admin_Page::PAGE_SLUG,
+            __( 'Scheduled Content Settings', 'scheduled-content-dashboard' ),
+            __( 'Settings', 'scheduled-content-dashboard' ),
             'manage_options',
             self::PAGE_SLUG,
             array( $this, 'render_page' )

@@ -42,13 +42,6 @@ class SCD_Admin_Page {
             array( $this, 'render_page' )
         );
 
-        add_submenu_page(
-            self::PAGE_SLUG,
-            __( 'Settings', 'scheduled-content-dashboard' ),
-            __( 'Settings', 'scheduled-content-dashboard' ),
-            'manage_options',
-            'options-general.php?page=' . SCD_Settings::PAGE_SLUG
-        );
     }
 
     public function enqueue( $hook ) {

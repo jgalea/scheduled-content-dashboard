@@ -68,6 +68,7 @@ class Scheduled_Content_Dashboard {
         add_action( 'admin_post_' . self::TOGGLE_MINE_ACTION, array( $this, 'handle_mine_toggle' ) );
         add_action( 'admin_post_' . self::TOGGLE_VIEW_ACTION, array( $this, 'handle_view_toggle' ) );
         add_action( 'admin_init', array( $this, 'maybe_auto_fix_missed' ) );
+        add_action( 'admin_init', array( $this, 'redirect_legacy_settings_url' ) );
     }
 
     public function register_dashboard_widget() {
@@ -91,7 +92,9 @@ class Scheduled_Content_Dashboard {
     }
 
     public function enqueue_styles( $hook ) {
-        if ( 'index.php' !== $hook && 'settings_page_' . SCD_Settings::PAGE_SLUG !== $hook ) {
+        $is_dashboard = ( 'index.php' === $hook );
+        $is_settings  = isset( $_GET['page'] ) && SCD_Settings::PAGE_SLUG === $_GET['page'];
+        if ( ! $is_dashboard && ! $is_settings ) {
             return;
         }
         wp_add_inline_style( 'dashboard', $this->get_widget_styles() );
@@ -1002,6 +1005,19 @@ class Scheduled_Content_Dashboard {
         }
 
         wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'index.php' ) );
+        exit;
+    }
+
+    public function redirect_legacy_settings_url() {
+        global $pagenow;
+        if ( 'options-general.php' !== $pagenow ) {
+            return;
+        }
+        $requested = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( SCD_Settings::PAGE_SLUG !== $requested ) {
+            return;
+        }
+        wp_safe_redirect( admin_url( 'admin.php?page=' . SCD_Settings::PAGE_SLUG ) );
         exit;
     }
 
