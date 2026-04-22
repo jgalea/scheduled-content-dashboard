@@ -329,10 +329,11 @@ class Scheduled_Content_Dashboard {
 
     private function get_active_post_types() {
         $configured = (array) SCD_Settings::get( 'included_post_types', array() );
-        if ( empty( $configured ) ) {
-            return array_keys( get_post_types( array( 'public' => true ) ) );
-        }
-        return $configured;
+        $public     = array_keys( get_post_types( array( 'public' => true ) ) );
+
+        // Intersect with currently-registered public types so an old saved CPT
+        // that's since been deregistered doesn't leak into queries.
+        return array_values( array_intersect( $configured, $public ) );
     }
 
     private function get_filter_state() {
@@ -356,6 +357,10 @@ class Scheduled_Content_Dashboard {
     private function build_query_args( $args_override = array() ) {
         $limit = max( 1, (int) SCD_Settings::get( 'item_limit', 50 ) );
         $types = $this->get_active_post_types();
+        if ( empty( $types ) ) {
+            // Force zero results; WP_Query would otherwise fall back to 'post'.
+            $types = array( '__scd_no_types__' );
+        }
 
         $args = array(
             'post_type'      => $types,
@@ -491,7 +496,10 @@ class Scheduled_Content_Dashboard {
     }
 
     private function get_counts() {
-        $types           = $this->get_active_post_types();
+        $types = $this->get_active_post_types();
+        if ( empty( $types ) ) {
+            return array( 'total' => 0, 'missed' => 0 );
+        }
         $user_scope_args = $this->is_mine_only() ? array( 'author' => get_current_user_id() ) : array();
 
         $base = array(
@@ -696,6 +704,9 @@ class Scheduled_Content_Dashboard {
 
         global $wpdb;
         $types  = $this->get_active_post_types();
+        if ( empty( $types ) ) {
+            return array();
+        }
         $in     = implode( ',', array_fill( 0, count( $types ), '%s' ) );
         $author_ids = $wpdb->get_col(
             $wpdb->prepare(

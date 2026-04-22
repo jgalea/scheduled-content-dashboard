@@ -28,7 +28,7 @@ class SCD_Settings {
     public static function defaults() {
         return array(
             'item_limit'          => 7,
-            'included_post_types' => array(),
+            'included_post_types' => array( 'post' ),
             'show_drafts'         => 0,
             'default_view'        => 'list',
             'auto_fix_enabled'    => 1,
@@ -220,10 +220,6 @@ class SCD_Settings {
     public function render_post_types() {
         $selected   = (array) self::get( 'included_post_types' );
         $post_types = get_post_types( array( 'public' => true ), 'objects' );
-
-        if ( empty( $selected ) ) {
-            $selected = array_keys( $post_types );
-        }
 
         echo '<fieldset>';
         foreach ( $post_types as $pt ) {
