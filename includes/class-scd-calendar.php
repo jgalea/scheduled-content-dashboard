@@ -1,8 +1,6 @@
 <?php
 /**
  * Mini calendar view for the dashboard widget.
- *
- * @package Scheduled_Content_Dashboard
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

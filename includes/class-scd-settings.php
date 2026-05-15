@@ -1,8 +1,6 @@
 <?php
 /**
  * Settings page for Scheduled Content Dashboard.
- *
- * @package Scheduled_Content_Dashboard
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -1,8 +1,6 @@
 <?php
 /**
  * Uninstall Scheduled Content Dashboard
- *
- * @package Scheduled_Content_Dashboard
  */
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {

@@ -1,8 +1,6 @@
 <?php
 /**
  * Full editorial calendar admin page.
- *
- * @package Scheduled_Content_Dashboard
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

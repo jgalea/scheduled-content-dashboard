@@ -1,13 +1,5 @@
 <?php
 /**
- * Scheduled Content Dashboard
- *
- * @package           Scheduled_Content_Dashboard
- * @author            jeangalea
- * @copyright         2026 Jean Galea
- * @license           GPL-2.0-or-later
- *
- * @wordpress-plugin
  * Plugin Name:       Scheduled Content Dashboard
  * Plugin URI:        https://wordpress.org/plugins/scheduled-content-dashboard/
  * Description:       Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.

@@ -1,8 +1,6 @@
 <?php
 /**
  * Email digest of scheduled content.
- *
- * @package Scheduled_Content_Dashboard
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

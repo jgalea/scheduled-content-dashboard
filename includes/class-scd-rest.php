@@ -1,8 +1,6 @@
 <?php
 /**
  * REST API endpoints for scheduled content.
- *
- * @package Scheduled_Content_Dashboard
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
