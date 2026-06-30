@@ -9,15 +9,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SCD_Admin_Page {
 
-    const PAGE_SLUG     = 'scd-calendar';
-    const AJAX_ACTION   = 'scd_reschedule';
-    const NONCE_ACTION  = 'scd_calendar_nonce';
+    const PAGE_SLUG    = 'scd-calendar';
+    const AJAX_ACTION  = 'scd_reschedule';
+    const AJAX_CREATE  = 'scd_quick_create';
+    const ICS_ACTION   = 'scd_export_ics';
+    const NONCE_ACTION = 'scd_calendar_nonce';
+
+    /** Per-day visible chip cap in month view before "+N more". */
+    const MONTH_CAP = 4;
 
     public static function init() {
         $self = new self();
         add_action( 'admin_menu', array( $self, 'add_menu' ), 5 );
         add_action( 'admin_enqueue_scripts', array( $self, 'enqueue' ) );
         add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $self, 'handle_reschedule' ) );
+        add_action( 'wp_ajax_' . self::AJAX_CREATE, array( $self, 'handle_create' ) );
+        add_action( 'admin_post_' . self::ICS_ACTION, array( $self, 'handle_ics' ) );
     }
 
     public function add_menu() {
@@ -39,7 +46,6 @@ class SCD_Admin_Page {
             self::PAGE_SLUG,
             array( $this, 'render_page' )
         );
-
     }
 
     public function enqueue( $hook ) {
@@ -47,13 +53,10 @@ class SCD_Admin_Page {
             return;
         }
 
-        wp_enqueue_script( 'jquery-ui-draggable' );
-        wp_enqueue_script( 'jquery-ui-droppable' );
-
         wp_enqueue_script(
             'scd-editorial-calendar',
             plugins_url( 'assets/js/editorial-calendar.js', dirname( __FILE__ ) ),
-            array( 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
+            array(),
             Scheduled_Content_Dashboard::VERSION,
             true
         );
@@ -64,9 +67,17 @@ class SCD_Admin_Page {
             array(
                 'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
                 'nonce'        => wp_create_nonce( self::NONCE_ACTION ),
+                'rescheduleAction' => self::AJAX_ACTION,
+                'createAction'     => self::AJAX_CREATE,
                 'rescheduling' => __( 'Rescheduling…', 'scheduled-content-dashboard' ),
                 'failed'       => __( 'Reschedule failed.', 'scheduled-content-dashboard' ),
                 'success'      => __( 'Rescheduled.', 'scheduled-content-dashboard' ),
+                'undo'         => __( 'Undo', 'scheduled-content-dashboard' ),
+                'creating'     => __( 'Creating…', 'scheduled-content-dashboard' ),
+                'createFailed' => __( 'Could not create the post.', 'scheduled-content-dashboard' ),
+                'newTitle'     => __( 'Post title', 'scheduled-content-dashboard' ),
+                'moreLabel'    => __( '+%d more', 'scheduled-content-dashboard' ),
+                'lessLabel'    => __( 'Show less', 'scheduled-content-dashboard' ),
             )
         );
 
@@ -75,166 +86,105 @@ class SCD_Admin_Page {
 
     private function styles() {
         return '
-            .scd-cal-toolbar {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin: 16px 0;
-            }
-            .scd-cal-toolbar h1 { margin: 0; font-size: 23px; }
-            .scd-cal-nav a {
-                text-decoration: none;
-                padding: 5px 12px;
-                background: #fff;
-                border: 1px solid #c3c4c7;
-                border-radius: 3px;
-                margin-left: 4px;
-                color: #2c3338;
-                font-size: 13px;
-            }
-            .scd-cal-nav a:hover { background: #f0f0f1; border-color: #8c8f94; }
-
-            .scd-cal-grid {
-                display: grid;
-                grid-template-columns: repeat(7, minmax(0, 1fr));
-                grid-auto-rows: 140px;
-                background: #fff;
-                border-top: 1px solid #dadce0;
-                border-left: 1px solid #dadce0;
-                box-shadow: 0 1px 1px rgba(0,0,0,0.04);
-            }
-            .scd-cal-grid > * {
-                box-sizing: border-box;
+            .scd-cal { --scd-bg:#ffffff; --scd-panel:#ffffff; --scd-ink:#1d2230; --scd-soft:#5b6472;
+                --scd-line:#e6e8ee; --scd-line2:#d6dae3; --scd-accent:#4f46e5; --scd-accent-weak:#eef0fe;
+                --scd-today:#f3f1ff; --scd-miss:#dc2626; --scd-miss-weak:#fdecec; --scd-out:#f7f8fa; --scd-wknd:#fbfbfd;
+                --scd-radius:10px;
+                font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--scd-ink); }
+            @media (prefers-color-scheme: dark) {
+                .scd-cal { --scd-bg:#0e1016; --scd-panel:#161922; --scd-ink:#e8eaf0; --scd-soft:#9aa3b2;
+                    --scd-line:#252a36; --scd-line2:#313747; --scd-accent:#8b85f5; --scd-accent-weak:#20223a;
+                    --scd-today:#1b1c30; --scd-miss:#f87171; --scd-miss-weak:#2a1a1d; --scd-out:#12141c; --scd-wknd:#13151d; }
+                .scd-cal .scd-chip .scd-ti { color:var(--scd-ink); }
             }
 
-            .scd-cal-dow {
-                background: #f6f7f7;
-                color: #50575e;
-                padding: 6px 8px;
-                text-align: center;
-                font-size: 11px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.4px;
-                height: auto;
-                grid-row: 1;
-                border-right: 1px solid #dadce0;
-                border-bottom: 1px solid #dadce0;
-            }
+            .scd-cal-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:14px 0 14px; }
+            .scd-cal-title { font-size:20px; font-weight:700; letter-spacing:-.02em; margin:0; }
+            .scd-seg { display:inline-flex; border:1px solid var(--scd-line2); border-radius:8px; overflow:hidden; }
+            .scd-seg a { text-decoration:none; font-size:13px; padding:5px 12px; color:var(--scd-soft); background:var(--scd-panel); }
+            .scd-seg a.is-on { background:var(--scd-accent); color:#fff; }
+            .scd-cal-filters { display:inline-flex; gap:8px; align-items:center; }
+            .scd-cal-filters select { font-size:13px; padding:4px 8px; border:1px solid var(--scd-line2); border-radius:8px;
+                background:var(--scd-panel); color:var(--scd-ink); max-width:170px; }
+            .scd-nav { display:inline-flex; gap:4px; }
+            .scd-nav a { text-decoration:none; font-size:13px; padding:5px 9px; border:1px solid var(--scd-line2);
+                border-radius:8px; color:var(--scd-ink); background:var(--scd-panel); }
+            .scd-nav a:hover { border-color:var(--scd-accent); }
+            .scd-spacer { flex:1; }
+            .scd-btn { text-decoration:none; font-size:13px; font-weight:600; border-radius:8px; padding:6px 13px; display:inline-flex; align-items:center; gap:6px; }
+            .scd-btn-primary { background:var(--scd-accent); color:#fff; }
+            .scd-btn-ghost { border:1px solid var(--scd-line2); color:var(--scd-ink); background:var(--scd-panel); }
 
-            .scd-cal-day {
-                background: #fff;
-                height: 140px;
-                padding: 6px 8px;
-                position: relative;
-                font-size: 12px;
-                color: #50575e;
-                overflow: hidden;
-                display: flex;
-                flex-direction: column;
-                min-width: 0;
-                transition: background 0.1s ease;
-                border-right: 1px solid #dadce0;
-                border-bottom: 1px solid #dadce0;
-            }
-            .scd-cal-day--weekend { background: #f9fafb; }
-            .scd-cal-day--other-month { background: #f0f0f1; color: #c3c4c7; }
-            .scd-cal-day--other-month .scd-cal-day-number { color: #a7aaad; }
-            .scd-cal-day--today {
-                background: #f0f6fc;
-                box-shadow: inset 0 3px 0 #2271b1;
-            }
-            .scd-cal-day--today .scd-cal-day-number {
-                color: #2271b1;
-                font-weight: 700;
-            }
-            .scd-cal-day--missed { background: #fcf0f1; }
-            .scd-cal-day--missed.scd-cal-day--today { background: linear-gradient(to bottom, #fcf0f1, #fcf0f1); box-shadow: inset 0 3px 0 #b32d2e; }
-            .scd-cal-day--today.scd-cal-day--missed .scd-cal-day-number { color: #b32d2e; }
+            .scd-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px;
+                background:var(--scd-line); border:1px solid var(--scd-line); border-radius:var(--scd-radius); overflow:hidden; }
+            .scd-grid * { box-sizing:border-box; }
+            .scd-dow { background:var(--scd-panel); color:var(--scd-soft); font-size:10.5px; font-weight:600;
+                letter-spacing:.07em; text-transform:uppercase; padding:8px 10px; }
+            .scd-day { background:var(--scd-panel); min-height:108px; padding:6px 7px 8px; display:flex; flex-direction:column; gap:4px; position:relative; }
+            .scd-day--week { min-height:340px; }
+            .scd-day--out { background:var(--scd-out); }
+            .scd-day--wknd { background:var(--scd-wknd); }
+            .scd-day--today { background:var(--scd-today); box-shadow:inset 0 2px 0 0 var(--scd-accent); }
+            .scd-day--dragover { outline:2px dashed var(--scd-accent); outline-offset:-2px; background:var(--scd-accent-weak); }
+            .scd-daynum { font-size:12.5px; font-weight:600; color:var(--scd-soft); }
+            .scd-day--today .scd-daynum { color:var(--scd-accent); }
+            .scd-day--out .scd-daynum { opacity:.5; }
 
-            .scd-cal-day-number {
-                font-weight: 600;
-                font-size: 14px;
-                color: #1d2327;
-                margin-bottom: 5px;
-                line-height: 1;
-            }
+            .scd-chip { display:flex; align-items:center; gap:6px; background:var(--scd-panel); border:1px solid var(--scd-line);
+                border-radius:7px; padding:4px 7px; cursor:grab; text-decoration:none; }
+            .scd-chip:hover { border-color:var(--scd-line2); }
+            .scd-chip[hidden] { display:none; }
+            .scd-chip.is-dragging { opacity:.5; }
+            .scd-chip .scd-dot { width:7px; height:7px; border-radius:50%; flex:0 0 auto; }
+            .scd-chip .scd-time { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10px; color:var(--scd-soft); flex:0 0 auto; }
+            .scd-chip .scd-ti { font-size:12px; font-weight:500; color:var(--scd-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            .scd-chip .scd-who { margin-left:auto; flex:0 0 auto; width:16px; height:16px; border-radius:50%; font-size:9px;
+                font-weight:700; color:#fff; display:grid; place-items:center; }
+            .scd-chip.is-miss { background:var(--scd-miss-weak); }
+            .scd-chip.is-miss .scd-ti { color:var(--scd-miss); }
 
-            .scd-cal-day-items {
-                flex: 1 1 auto;
-                overflow: hidden;
-                min-height: 0;
-            }
-            .scd-cal-day-more {
-                flex: 0 0 auto;
-                font-size: 11px;
-                color: #50575e;
-                padding-top: 3px;
-                font-weight: 500;
-            }
+            .scd-more { font-size:11px; font-weight:600; color:var(--scd-accent); cursor:pointer; background:none; border:0; padding:1px 2px; text-align:left; }
+            .scd-add { margin-top:auto; border:1px dashed var(--scd-line2); border-radius:7px; color:var(--scd-soft);
+                font-size:11.5px; text-align:center; padding:5px 0; cursor:pointer; opacity:0; transition:opacity .12s; background:none; width:100%; }
+            .scd-day:hover .scd-add { opacity:1; }
 
-            .scd-cal-day-over {
-                background: #e7f3fb !important;
-                outline: 2px dashed #2271b1;
-                outline-offset: -2px;
-            }
+            .scd-legend { display:flex; flex-wrap:wrap; gap:16px; margin-top:14px; font-size:12px; color:var(--scd-soft); align-items:center; }
+            .scd-legend span { display:inline-flex; align-items:center; gap:6px; }
+            .scd-legend .scd-d { width:9px; height:9px; border-radius:50%; }
 
-            .scd-cal-item {
-                background: #2271b1;
-                color: #fff;
-                padding: 3px 7px;
-                margin-bottom: 3px;
-                border-radius: 3px;
-                font-size: 11px;
-                line-height: 1.4;
-                cursor: move;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                box-shadow: 0 1px 1px rgba(0,0,0,0.08);
-            }
-            .scd-cal-item a { color: #fff; text-decoration: none; }
-            .scd-cal-item:hover { background: #135e96; }
-            .scd-cal-item--missed { background: #b32d2e; }
-            .scd-cal-item--missed:hover { background: #8a2324; }
-            .scd-cal-item.ui-draggable-dragging {
-                opacity: 0.85;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-                transform: rotate(-1deg);
-            }
-
-            .scd-cal-feedback {
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: #1d2327;
-                color: #fff;
-                padding: 10px 16px;
-                border-radius: 4px;
-                font-size: 13px;
-                z-index: 9999;
-                display: none;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-            }
-            .scd-cal-feedback--success { background: #00a32a; }
-            .scd-cal-feedback--error { background: #b32d2e; }
-
-            .scd-cal-legend {
-                display: flex;
-                gap: 16px;
-                margin-top: 16px;
-                font-size: 12px;
-                color: #50575e;
-            }
-            .scd-cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
-            .scd-cal-legend .swatch {
-                display: inline-block;
-                width: 12px;
-                height: 12px;
-                border-radius: 2px;
-                border: 1px solid rgba(0,0,0,0.1);
-            }
+            .scd-feedback { position:fixed; bottom:24px; right:24px; background:var(--scd-ink); color:var(--scd-bg);
+                padding:10px 14px; border-radius:9px; font-size:13px; z-index:9999; display:none; align-items:center; gap:12px;
+                box-shadow:0 6px 20px rgba(0,0,0,.25); }
+            .scd-feedback button { background:none; border:0; color:var(--scd-accent); font-weight:700; cursor:pointer; font-size:13px; }
+            .scd-feedback.is-error { background:var(--scd-miss); color:#fff; }
         ';
+    }
+
+    /** Resolve current request params. */
+    private function params() {
+        $view = isset( $_GET['scd_view'] ) ? sanitize_key( wp_unslash( $_GET['scd_view'] ) ) : 'month';
+        if ( ! in_array( $view, array( 'month', 'week' ), true ) ) {
+            $view = 'month';
+        }
+        $month = isset( $_GET['scd_month'] ) ? sanitize_text_field( wp_unslash( $_GET['scd_month'] ) ) : wp_date( 'Y-m' );
+        if ( ! preg_match( '/^\d{4}-\d{2}$/', $month ) ) {
+            $month = wp_date( 'Y-m' );
+        }
+        $week = isset( $_GET['scd_week'] ) ? sanitize_text_field( wp_unslash( $_GET['scd_week'] ) ) : wp_date( 'Y-m-d' );
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $week ) ) {
+            $week = wp_date( 'Y-m-d' );
+        }
+        $type   = isset( $_GET['scd_type'] ) ? sanitize_key( wp_unslash( $_GET['scd_type'] ) ) : '';
+        $author = isset( $_GET['scd_author'] ) ? absint( $_GET['scd_author'] ) : 0;
+
+        return compact( 'view', 'month', 'week', 'type', 'author' );
+    }
+
+    /** Post types the calendar considers, from settings (fallback to post). */
+    private function base_types() {
+        $types = (array) SCD_Settings::get( 'included_post_types', array( 'post' ) );
+        $types = array_values( array_filter( $types, 'post_type_exists' ) );
+        return $types ? $types : array( 'post' );
     }
 
     public function render_page() {
@@ -242,11 +192,113 @@ class SCD_Admin_Page {
             wp_die( esc_html__( 'You do not have permission to view this page.', 'scheduled-content-dashboard' ) );
         }
 
-        $month = isset( $_GET['scd_month'] ) ? sanitize_text_field( wp_unslash( $_GET['scd_month'] ) ) : wp_date( 'Y-m' );
-        if ( ! preg_match( '/^\d{4}-\d{2}$/', $month ) ) {
-            $month = wp_date( 'Y-m' );
+        $p     = $this->params();
+        $today = wp_date( 'Y-m-d' );
+
+        if ( 'week' === $p['view'] ) {
+            $start = $this->week_start( $p['week'] );
+            $end   = gmdate( 'Y-m-d', strtotime( $start . ' +6 days' ) );
+        } else {
+            $month_ts = strtotime( $p['month'] . '-01' );
+            $start    = wp_date( 'Y-m-01', $month_ts );
+            $end      = wp_date( 'Y-m-t', $month_ts );
         }
 
+        $items_by_day = $this->build_items_by_day( $start, $end, $p['type'], $p['author'] );
+        $authors      = $this->author_choices();
+        $base_url     = menu_page_url( self::PAGE_SLUG, false );
+
+        ?>
+        <div class="wrap scd-cal">
+            <?php $this->render_toolbar( $p, $base_url, $start ); ?>
+
+            <?php
+            if ( 'week' === $p['view'] ) {
+                $this->render_week( $start, $items_by_day, $today );
+            } else {
+                $this->render_month( $p['month'], $items_by_day, $today );
+            }
+            ?>
+
+            <div class="scd-legend">
+                <span><span class="scd-d" style="background:<?php echo esc_attr( $this->type_color( 'post' ) ); ?>"></span><?php esc_html_e( 'Post', 'scheduled-content-dashboard' ); ?></span>
+                <span><span class="scd-d" style="background:<?php echo esc_attr( $this->type_color( 'page' ) ); ?>"></span><?php esc_html_e( 'Page', 'scheduled-content-dashboard' ); ?></span>
+                <span><span class="scd-d" style="background:var(--scd-miss)"></span><?php esc_html_e( 'Missed schedule', 'scheduled-content-dashboard' ); ?></span>
+                <span class="scd-spacer"></span>
+                <span style="font-size:11px"><?php esc_html_e( 'Drag to reschedule · click an empty day to create', 'scheduled-content-dashboard' ); ?></span>
+            </div>
+
+            <div id="scd-cal-feedback" class="scd-feedback" role="status" aria-live="polite"></div>
+        </div>
+        <?php
+    }
+
+    private function render_toolbar( $p, $base_url, $start ) {
+        $is_week  = ( 'week' === $p['view'] );
+        $title    = $is_week
+            ? $this->week_label( $start )
+            : wp_date( 'F Y', strtotime( $p['month'] . '-01' ) );
+
+        // Prev / today / next targets.
+        if ( $is_week ) {
+            $prev = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => gmdate( 'Y-m-d', strtotime( $start . ' -7 days' ) ) ), $base_url );
+            $next = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => gmdate( 'Y-m-d', strtotime( $start . ' +7 days' ) ) ), $base_url );
+            $now  = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => wp_date( 'Y-m-d' ) ), $base_url );
+        } else {
+            $month_ts = strtotime( $p['month'] . '-01' );
+            $prev = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m', strtotime( '-1 month', $month_ts ) ) ), $base_url );
+            $next = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m', strtotime( '+1 month', $month_ts ) ) ), $base_url );
+            $now  = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m' ) ), $base_url );
+        }
+
+        $month_view = add_query_arg( array( 'scd_view' => 'month', 'scd_type' => $p['type'], 'scd_author' => $p['author'] ?: false ), $base_url );
+        $week_view  = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => $is_week ? $start : wp_date( 'Y-m-d' ), 'scd_type' => $p['type'], 'scd_author' => $p['author'] ?: false ), $base_url );
+
+        $ics_url = wp_nonce_url( admin_url( 'admin-post.php?action=' . self::ICS_ACTION . '&scd_month=' . rawurlencode( $is_week ? wp_date( 'Y-m', strtotime( $start ) ) : $p['month'] ) ), self::ICS_ACTION );
+        ?>
+        <div class="scd-cal-toolbar">
+            <h1 class="scd-cal-title"><?php echo esc_html( $title ); ?></h1>
+
+            <span class="scd-seg">
+                <a href="<?php echo esc_url( $month_view ); ?>" class="<?php echo $is_week ? '' : 'is-on'; ?>"><?php esc_html_e( 'Month', 'scheduled-content-dashboard' ); ?></a>
+                <a href="<?php echo esc_url( $week_view ); ?>" class="<?php echo $is_week ? 'is-on' : ''; ?>"><?php esc_html_e( 'Week', 'scheduled-content-dashboard' ); ?></a>
+            </span>
+
+            <form class="scd-cal-filters" method="get">
+                <input type="hidden" name="page" value="<?php echo esc_attr( self::PAGE_SLUG ); ?>" />
+                <input type="hidden" name="scd_view" value="<?php echo esc_attr( $p['view'] ); ?>" />
+                <input type="hidden" name="scd_month" value="<?php echo esc_attr( $p['month'] ); ?>" />
+                <input type="hidden" name="scd_week" value="<?php echo esc_attr( $is_week ? $start : $p['week'] ); ?>" />
+                <select name="scd_type" onchange="this.form.submit()" aria-label="<?php esc_attr_e( 'Filter by type', 'scheduled-content-dashboard' ); ?>">
+                    <option value=""><?php esc_html_e( 'All types', 'scheduled-content-dashboard' ); ?></option>
+                    <?php foreach ( $this->base_types() as $t ) :
+                        $obj = get_post_type_object( $t ); ?>
+                        <option value="<?php echo esc_attr( $t ); ?>" <?php selected( $p['type'], $t ); ?>><?php echo esc_html( $obj ? $obj->labels->name : $t ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="scd_author" onchange="this.form.submit()" aria-label="<?php esc_attr_e( 'Filter by author', 'scheduled-content-dashboard' ); ?>">
+                    <option value="0"><?php esc_html_e( 'All authors', 'scheduled-content-dashboard' ); ?></option>
+                    <?php foreach ( $this->author_choices() as $id => $name ) : ?>
+                        <option value="<?php echo (int) $id; ?>" <?php selected( $p['author'], $id ); ?>><?php echo esc_html( $name ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </form>
+
+            <span class="scd-nav">
+                <a href="<?php echo esc_url( $prev ); ?>" aria-label="<?php esc_attr_e( 'Previous', 'scheduled-content-dashboard' ); ?>">&larr;</a>
+                <a href="<?php echo esc_url( $now ); ?>"><?php esc_html_e( 'Today', 'scheduled-content-dashboard' ); ?></a>
+                <a href="<?php echo esc_url( $next ); ?>" aria-label="<?php esc_attr_e( 'Next', 'scheduled-content-dashboard' ); ?>">&rarr;</a>
+            </span>
+
+            <span class="scd-spacer"></span>
+
+            <a class="scd-btn scd-btn-ghost" href="<?php echo esc_url( $ics_url ); ?>"><?php esc_html_e( 'Export .ics', 'scheduled-content-dashboard' ); ?></a>
+            <a class="scd-btn scd-btn-primary" href="<?php echo esc_url( admin_url( 'post-new.php' ) ); ?>">+ <?php esc_html_e( 'New post', 'scheduled-content-dashboard' ); ?></a>
+        </div>
+        <?php
+    }
+
+    private function render_month( $month, $items_by_day, $today ) {
         $month_ts      = strtotime( $month . '-01' );
         $year          = (int) wp_date( 'Y', $month_ts );
         $month_num     = (int) wp_date( 'n', $month_ts );
@@ -254,173 +306,232 @@ class SCD_Admin_Page {
         $first_weekday = (int) wp_date( 'w', $month_ts );
         $start_of_week = (int) get_option( 'start_of_week', 0 );
         $offset        = ( $first_weekday - $start_of_week + 7 ) % 7;
-
-        $items_by_day = $this->build_items_by_day( $month );
-        $today        = wp_date( 'Y-m-d' );
-        $prev_month   = wp_date( 'Y-m', strtotime( $month . '-01 -1 month' ) );
-        $next_month   = wp_date( 'Y-m', strtotime( $month . '-01 +1 month' ) );
-        $this_month   = wp_date( 'Y-m' );
         ?>
-        <div class="wrap">
-            <div class="scd-cal-toolbar">
-                <h1><?php echo esc_html( wp_date( 'F Y', $month_ts ) ); ?></h1>
-                <div class="scd-cal-nav">
-                    <a href="<?php echo esc_url( add_query_arg( 'scd_month', $prev_month ) ); ?>">&larr; <?php esc_html_e( 'Previous', 'scheduled-content-dashboard' ); ?></a>
-                    <a href="<?php echo esc_url( remove_query_arg( array( 'scd_month', 'scd_day' ) ) ); ?>"><?php esc_html_e( 'Today', 'scheduled-content-dashboard' ); ?></a>
-                    <a href="<?php echo esc_url( add_query_arg( 'scd_month', $next_month ) ); ?>"><?php esc_html_e( 'Next', 'scheduled-content-dashboard' ); ?> &rarr;</a>
-                </div>
-            </div>
+        <div class="scd-grid">
+            <?php
+            for ( $i = 0; $i < 7; $i++ ) {
+                $dow = ( $start_of_week + $i ) % 7;
+                echo '<div class="scd-dow">' . esc_html( $this->dow_abbr( $dow ) ) . '</div>';
+            }
 
-            <p class="description">
-                <?php esc_html_e( 'Drag scheduled posts to a different day to reschedule them. Time of day is preserved.', 'scheduled-content-dashboard' ); ?>
-            </p>
+            for ( $i = 0; $i < $offset; $i++ ) {
+                echo '<div class="scd-day scd-day--out"></div>';
+            }
 
-            <div class="scd-cal-grid">
-                <?php
-                for ( $i = 0; $i < 7; $i++ ) {
-                    $dow = ( $start_of_week + $i ) % 7;
-                    echo '<div class="scd-cal-dow">' . esc_html( $this->dow_name( $dow ) ) . '</div>';
-                }
+            for ( $day = 1; $day <= $days_in; $day++ ) {
+                $date_key = sprintf( '%04d-%02d-%02d', $year, $month_num, $day );
+                $items    = $items_by_day[ $date_key ] ?? array();
+                $this->render_day_cell( $date_key, $day, $items, $today, false );
+            }
 
-                // Leading blanks.
-                for ( $i = 0; $i < $offset; $i++ ) {
-                    echo '<div class="scd-cal-day scd-cal-day--other-month"></div>';
-                }
-
-                $per_day_cap = 3;
-                for ( $day = 1; $day <= $days_in; $day++ ) {
-                    $date_key = sprintf( '%04d-%02d-%02d', $year, $month_num, $day );
-                    $items    = $items_by_day[ $date_key ] ?? array();
-                    $classes  = array( 'scd-cal-day' );
-
-                    $dow = (int) wp_date( 'w', strtotime( $date_key ) );
-                    if ( 0 === $dow || 6 === $dow ) {
-                        $classes[] = 'scd-cal-day--weekend';
-                    }
-                    if ( $date_key === $today ) {
-                        $classes[] = 'scd-cal-day--today';
-                    }
-                    if ( $this->has_missed( $items ) ) {
-                        $classes[] = 'scd-cal-day--missed';
-                    }
-
-                    $visible_items  = array_slice( $items, 0, $per_day_cap );
-                    $overflow_count = max( 0, count( $items ) - $per_day_cap );
-                    ?>
-                    <div class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-date="<?php echo esc_attr( $date_key ); ?>">
-                        <div class="scd-cal-day-number"><?php echo (int) $day; ?></div>
-                        <div class="scd-cal-day-items">
-                            <?php foreach ( $visible_items as $item ) : ?>
-                                <div class="scd-cal-item <?php echo $item['is_missed'] ? 'scd-cal-item--missed' : ''; ?>"
-                                    data-post-id="<?php echo (int) $item['id']; ?>"
-                                    data-time="<?php echo esc_attr( $item['time'] ); ?>"
-                                    title="<?php echo esc_attr( $item['time_formatted'] . ' · ' . $item['type_label'] . ' · ' . $item['author'] ); ?>">
-                                    <a href="<?php echo esc_url( $item['edit_link'] ); ?>"><?php echo esc_html( $item['title'] ); ?></a>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <?php if ( $overflow_count > 0 ) : ?>
-                            <div class="scd-cal-day-more">
-                                <?php
-                                printf(
-                                    /* translators: %d: number of additional items on the day. */
-                                    esc_html( _n( '+%d more', '+%d more', $overflow_count, 'scheduled-content-dashboard' ) ),
-                                    $overflow_count
-                                );
-                                ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    <?php
-                }
-
-                $trailing = ( 7 - ( ( $offset + $days_in ) % 7 ) ) % 7;
-                for ( $i = 0; $i < $trailing; $i++ ) {
-                    echo '<div class="scd-cal-day scd-cal-day--other-month"></div>';
-                }
-                ?>
-            </div>
-
-            <div class="scd-cal-legend">
-                <span><span class="swatch" style="background:#2271b1"></span><?php esc_html_e( 'Scheduled', 'scheduled-content-dashboard' ); ?></span>
-                <span><span class="swatch" style="background:#b32d2e"></span><?php esc_html_e( 'Missed schedule', 'scheduled-content-dashboard' ); ?></span>
-                <span><span class="swatch" style="background:#f0f6fc; border-color:#2271b1"></span><?php esc_html_e( 'Today', 'scheduled-content-dashboard' ); ?></span>
-            </div>
-
-            <div id="scd-cal-feedback" class="scd-cal-feedback" role="status" aria-live="polite"></div>
+            $trailing = ( 7 - ( ( $offset + $days_in ) % 7 ) ) % 7;
+            for ( $i = 0; $i < $trailing; $i++ ) {
+                echo '<div class="scd-day scd-day--out"></div>';
+            }
+            ?>
         </div>
         <?php
     }
 
-    private function build_items_by_day( $month ) {
-        $start = get_gmt_from_date( $month . '-01 00:00:00' );
-        $end   = get_gmt_from_date( wp_date( 'Y-m-t 23:59:59', strtotime( $month . '-01' ) ) );
+    private function render_week( $start, $items_by_day, $today ) {
+        $start_of_week = (int) get_option( 'start_of_week', 0 );
+        ?>
+        <div class="scd-grid">
+            <?php
+            for ( $i = 0; $i < 7; $i++ ) {
+                $dow = ( $start_of_week + $i ) % 7;
+                echo '<div class="scd-dow">' . esc_html( $this->dow_abbr( $dow ) ) . '</div>';
+            }
+            for ( $i = 0; $i < 7; $i++ ) {
+                $date_key = gmdate( 'Y-m-d', strtotime( $start . ' +' . $i . ' days' ) );
+                $day_num  = (int) gmdate( 'j', strtotime( $date_key ) );
+                $items    = $items_by_day[ $date_key ] ?? array();
+                $this->render_day_cell( $date_key, $day_num, $items, $today, true );
+            }
+            ?>
+        </div>
+        <?php
+    }
 
-        $posts = get_posts(
-            array(
-                'post_type'      => array_keys( get_post_types( array( 'public' => true ) ) ),
-                'post_status'    => 'future',
-                'posts_per_page' => 500,
-                'orderby'        => 'date',
-                'order'          => 'ASC',
-                'no_found_rows'  => true,
-                'date_query'     => array(
-                    array(
-                        'column'    => 'post_date_gmt',
-                        'after'     => $start,
-                        'before'    => $end,
-                        'inclusive' => true,
-                    ),
-                ),
-            )
+    private function render_day_cell( $date_key, $day_num, $items, $today, $is_week ) {
+        $classes = array( 'scd-day' );
+        if ( $is_week ) {
+            $classes[] = 'scd-day--week';
+        }
+        $dow = (int) gmdate( 'w', strtotime( $date_key ) );
+        if ( 0 === $dow || 6 === $dow ) {
+            $classes[] = 'scd-day--wknd';
+        }
+        if ( $date_key === $today ) {
+            $classes[] = 'scd-day--today';
+        }
+
+        $cap       = $is_week ? 999 : self::MONTH_CAP;
+        $overflow  = max( 0, count( $items ) - $cap );
+
+        echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-date="' . esc_attr( $date_key ) . '">';
+        echo '<div class="scd-daynum">' . (int) $day_num . '</div>';
+
+        $idx = 0;
+        foreach ( $items as $item ) {
+            $this->render_chip( $item, $idx >= $cap );
+            $idx++;
+        }
+
+        if ( $overflow > 0 ) {
+            printf(
+                '<button type="button" class="scd-more" data-more="%1$d" data-less="%2$s">%3$s</button>',
+                (int) $overflow,
+                esc_attr__( 'Show less', 'scheduled-content-dashboard' ),
+                esc_html( sprintf(
+                    /* translators: %d: number of additional items. */
+                    _n( '+%d more', '+%d more', $overflow, 'scheduled-content-dashboard' ),
+                    $overflow
+                ) )
+            );
+        }
+
+        echo '<button type="button" class="scd-add" aria-label="' . esc_attr__( 'Add a post on this day', 'scheduled-content-dashboard' ) . '">+ ' . esc_html__( 'Add', 'scheduled-content-dashboard' ) . '</button>';
+        echo '</div>';
+    }
+
+    private function render_chip( $item, $hidden ) {
+        $classes = array( 'scd-chip' );
+        if ( $item['is_missed'] ) {
+            $classes[] = 'is-miss';
+        }
+        $dot = $item['is_missed'] ? 'var(--scd-miss)' : $this->type_color( $item['type'] );
+        printf(
+            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" title="%6$s">'
+            . '<span class="scd-dot" style="background:%7$s"></span>'
+            . '<span class="scd-time">%8$s</span>'
+            . '<span class="scd-ti">%9$s</span>'
+            . '<span class="scd-who" style="background:%10$s">%11$s</span>'
+            . '</a>',
+            esc_attr( implode( ' ', $classes ) ),
+            esc_url( $item['edit_link'] ),
+            $hidden ? 'hidden' : '',
+            (int) $item['id'],
+            esc_attr( $item['time'] ),
+            esc_attr( $item['time_formatted'] . ' · ' . $item['type_label'] . ' · ' . $item['author'] ),
+            esc_attr( $dot ),
+            esc_html( substr( $item['time'], 0, 5 ) ),
+            esc_html( $item['title'] ),
+            esc_attr( $this->author_color( $item['author'] ) ),
+            esc_html( $this->initial( $item['author'] ) )
         );
+    }
 
+    private function build_items_by_day( $start, $end, $type, $author ) {
+        $base = $type && in_array( $type, $this->base_types(), true ) ? array( $type ) : $this->base_types();
+
+        $args = array(
+            'post_type'      => $base,
+            'post_status'    => 'future',
+            'posts_per_page' => 500,
+            'orderby'        => 'date',
+            'order'          => 'ASC',
+            'no_found_rows'  => true,
+            'date_query'     => array(
+                array(
+                    'column'    => 'post_date_gmt',
+                    'after'     => get_gmt_from_date( $start . ' 00:00:00' ),
+                    'before'    => get_gmt_from_date( $end . ' 23:59:59' ),
+                    'inclusive' => true,
+                ),
+            ),
+        );
+        if ( $author > 0 ) {
+            $args['author'] = $author;
+        }
+
+        $posts   = get_posts( $args );
         $now_gmt = time();
         $grouped = array();
 
         foreach ( $posts as $post ) {
             $local_date = wp_date( 'Y-m-d', strtotime( $post->post_date ) );
-            $time       = wp_date( 'H:i:s', strtotime( $post->post_date ) );
-            $is_missed  = strtotime( $post->post_date_gmt . ' UTC' ) <= $now_gmt;
-            $type       = get_post_type_object( $post->post_type );
-
-            if ( ! isset( $grouped[ $local_date ] ) ) {
-                $grouped[ $local_date ] = array();
-            }
+            $type_obj   = get_post_type_object( $post->post_type );
 
             $grouped[ $local_date ][] = array(
                 'id'             => (int) $post->ID,
                 'title'          => $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ),
-                'time'           => $time,
+                'time'           => wp_date( 'H:i:s', strtotime( $post->post_date ) ),
                 'time_formatted' => wp_date( get_option( 'time_format' ), strtotime( $post->post_date ) ),
                 'edit_link'      => get_edit_post_link( $post->ID, 'raw' ),
-                'type_label'     => $type ? $type->labels->singular_name : $post->post_type,
+                'type'           => $post->post_type,
+                'type_label'     => $type_obj ? $type_obj->labels->singular_name : $post->post_type,
                 'author'         => get_the_author_meta( 'display_name', $post->post_author ),
-                'is_missed'      => $is_missed,
+                'is_missed'      => strtotime( $post->post_date_gmt . ' UTC' ) <= $now_gmt,
             );
         }
 
         return $grouped;
     }
 
-    private function has_missed( $items ) {
-        foreach ( $items as $item ) {
-            if ( ! empty( $item['is_missed'] ) ) {
-                return true;
-            }
+    /** Authors who currently have scheduled posts in the base types. */
+    private function author_choices() {
+        $authors = array();
+        foreach ( get_posts(
+            array(
+                'post_type'      => $this->base_types(),
+                'post_status'    => 'future',
+                'posts_per_page' => 500,
+                'no_found_rows'  => true,
+            )
+        ) as $post ) {
+            $authors[ (int) $post->post_author ] = get_the_author_meta( 'display_name', $post->post_author );
         }
-        return false;
+        asort( $authors );
+        return $authors;
     }
 
-    private function dow_name( $dow ) {
+    /** Stable color for a post type. */
+    private function type_color( $type ) {
+        $map = array(
+            'post' => 'var(--scd-accent)',
+            'page' => '#d97706',
+        );
+        if ( isset( $map[ $type ] ) ) {
+            return $map[ $type ];
+        }
+        $palette = array( '#0d9488', '#db2777', '#7c3aed', '#0284c7', '#65a30d' );
+        $i       = abs( crc32( $type ) ) % count( $palette );
+        return $palette[ $i ];
+    }
+
+    private function author_color( $name ) {
+        $palette = array( '#475569', '#7c3aed', '#0d9488', '#b45309', '#be123c', '#1d4ed8' );
+        $i       = abs( crc32( (string) $name ) ) % count( $palette );
+        return $palette[ $i ];
+    }
+
+    private function initial( $name ) {
+        $name = trim( (string) $name );
+        return $name ? mb_strtoupper( mb_substr( $name, 0, 1 ) ) : '?';
+    }
+
+    private function week_start( $date ) {
+        $start_of_week = (int) get_option( 'start_of_week', 0 );
+        $dow           = (int) gmdate( 'w', strtotime( $date ) );
+        $diff          = ( $dow - $start_of_week + 7 ) % 7;
+        return gmdate( 'Y-m-d', strtotime( $date . ' -' . $diff . ' days' ) );
+    }
+
+    private function week_label( $start ) {
+        $end = strtotime( $start . ' +6 days' );
+        return wp_date( 'M j', strtotime( $start ) ) . ' – ' . wp_date( 'M j, Y', $end );
+    }
+
+    private function dow_abbr( $dow ) {
         $names = array(
-            __( 'Sunday', 'scheduled-content-dashboard' ),
-            __( 'Monday', 'scheduled-content-dashboard' ),
-            __( 'Tuesday', 'scheduled-content-dashboard' ),
-            __( 'Wednesday', 'scheduled-content-dashboard' ),
-            __( 'Thursday', 'scheduled-content-dashboard' ),
-            __( 'Friday', 'scheduled-content-dashboard' ),
-            __( 'Saturday', 'scheduled-content-dashboard' ),
+            __( 'Sun', 'scheduled-content-dashboard' ),
+            __( 'Mon', 'scheduled-content-dashboard' ),
+            __( 'Tue', 'scheduled-content-dashboard' ),
+            __( 'Wed', 'scheduled-content-dashboard' ),
+            __( 'Thu', 'scheduled-content-dashboard' ),
+            __( 'Fri', 'scheduled-content-dashboard' ),
+            __( 'Sat', 'scheduled-content-dashboard' ),
         );
         return $names[ $dow ] ?? '';
     }
@@ -435,11 +546,9 @@ class SCD_Admin_Page {
         if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
             wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
         }
-
         if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $new_date ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
         }
-
         if ( ! preg_match( '/^\d{2}:\d{2}(:\d{2})?$/', $time ) ) {
             $time = '09:00:00';
         }
@@ -447,9 +556,8 @@ class SCD_Admin_Page {
             $time .= ':00';
         }
 
-        $local    = $new_date . ' ' . $time;
-        $local_ts = strtotime( $local );
-        if ( false === $local_ts ) {
+        $local = $new_date . ' ' . $time;
+        if ( false === strtotime( $local ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
         }
 
@@ -473,11 +581,101 @@ class SCD_Admin_Page {
             wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
         }
 
+        wp_send_json_success( array( 'id' => $post_id, 'date' => $local ) );
+    }
+
+    public function handle_create() {
+        check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+        $date  = isset( $_POST['date'] ) ? sanitize_text_field( wp_unslash( $_POST['date'] ) ) : '';
+        $time  = isset( $_POST['time'] ) ? sanitize_text_field( wp_unslash( $_POST['time'] ) ) : '09:00';
+        $title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+
+        $types = $this->base_types();
+        $type  = $types[0];
+
+        if ( ! current_user_can( get_post_type_object( $type )->cap->create_posts ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
+        }
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+        if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
+            $time = '09:00';
+        }
+        if ( '' === $title ) {
+            $title = __( '(no title)', 'scheduled-content-dashboard' );
+        }
+
+        $local = $date . ' ' . $time . ':00';
+        // Ensure the date is in the future so the post stays 'future'.
+        if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
+            $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
+        }
+
+        $id = wp_insert_post(
+            array(
+                'post_title'    => $title,
+                'post_type'     => $type,
+                'post_status'   => 'future',
+                'post_date'     => $local,
+                'post_date_gmt' => get_gmt_from_date( $local ),
+                'edit_date'     => true,
+            ),
+            true
+        );
+
+        if ( is_wp_error( $id ) ) {
+            wp_send_json_error( array( 'message' => $id->get_error_message() ), 500 );
+        }
+
         wp_send_json_success(
             array(
-                'id'   => $post_id,
-                'date' => $local,
+                'id'        => (int) $id,
+                'edit_link' => get_edit_post_link( $id, 'raw' ),
+                'title'     => $title,
             )
         );
+    }
+
+    public function handle_ics() {
+        if ( ! current_user_can( 'edit_posts' ) || ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), self::ICS_ACTION ) ) {
+            wp_die( esc_html__( 'Permission denied.', 'scheduled-content-dashboard' ) );
+        }
+
+        $month = isset( $_GET['scd_month'] ) ? sanitize_text_field( wp_unslash( $_GET['scd_month'] ) ) : wp_date( 'Y-m' );
+        if ( ! preg_match( '/^\d{4}-\d{2}$/', $month ) ) {
+            $month = wp_date( 'Y-m' );
+        }
+        $month_ts = strtotime( $month . '-01' );
+        $start    = wp_date( 'Y-m-01', $month_ts );
+        $end      = wp_date( 'Y-m-t', $month_ts );
+
+        $by_day = $this->build_items_by_day( $start, $end, '', 0 );
+
+        $lines   = array( 'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Scheduled Content Dashboard//EN', 'CALSCALE:GREGORIAN' );
+        $dtstamp = gmdate( 'Ymd\THis\Z' );
+        foreach ( $by_day as $date => $items ) {
+            foreach ( $items as $item ) {
+                $dt = gmdate( 'Ymd\THis\Z', strtotime( get_gmt_from_date( $date . ' ' . $item['time'] ) . ' UTC' ) );
+                $lines[] = 'BEGIN:VEVENT';
+                $lines[] = 'UID:scd-' . $item['id'] . '@' . wp_parse_url( home_url(), PHP_URL_HOST );
+                $lines[] = 'DTSTAMP:' . $dtstamp;
+                $lines[] = 'DTSTART:' . $dt;
+                $lines[] = 'SUMMARY:' . $this->ics_escape( $item['title'] . ' (' . $item['type_label'] . ')' );
+                $lines[] = 'END:VEVENT';
+            }
+        }
+        $lines[] = 'END:VCALENDAR';
+
+        nocache_headers();
+        header( 'Content-Type: text/calendar; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="scheduled-' . $month . '.ics"' );
+        echo implode( "\r\n", $lines ) . "\r\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+        exit;
+    }
+
+    private function ics_escape( $text ) {
+        return preg_replace( '/([,;\\\\])/', '\\\\$1', str_replace( array( "\r\n", "\n", "\r" ), '\\n', $text ) );
     }
 }
