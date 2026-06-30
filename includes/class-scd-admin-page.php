@@ -797,6 +797,10 @@ class SCD_Admin_Page {
     }
 
     private function ics_escape( $text ) {
-        return preg_replace( '/([,;\\\\])/', '\\\\$1', str_replace( array( "\r\n", "\n", "\r" ), '\\n', $text ) );
+        // RFC 5545 TEXT escaping, in order: backslash, then ; and , then newlines.
+        $text = str_replace( '\\', '\\\\', $text );
+        $text = str_replace( array( ';', ',' ), array( '\\;', '\\,' ), $text );
+        $text = str_replace( array( "\r\n", "\r", "\n" ), '\\n', $text );
+        return $text;
     }
 }
