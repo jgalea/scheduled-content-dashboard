@@ -499,6 +499,10 @@ class SCD_Admin_Page {
         if ( $author > 0 ) {
             $args['author'] = $author;
         }
+        // Users who can't edit others' posts only see their own scheduled content.
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            $args['author'] = get_current_user_id();
+        }
 
         $posts   = get_posts( $args );
         $now_gmt = time();
@@ -526,15 +530,18 @@ class SCD_Admin_Page {
 
     /** Authors who currently have scheduled posts in the base types. */
     private function author_choices() {
+        $args = array(
+            'post_type'      => $this->base_types(),
+            'post_status'    => 'future',
+            'posts_per_page' => 500,
+            'no_found_rows'  => true,
+        );
+        // Don't reveal other authors to users who can't edit others' posts.
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            $args['author'] = get_current_user_id();
+        }
         $authors = array();
-        foreach ( get_posts(
-            array(
-                'post_type'      => $this->base_types(),
-                'post_status'    => 'future',
-                'posts_per_page' => 500,
-                'no_found_rows'  => true,
-            )
-        ) as $post ) {
+        foreach ( get_posts( $args ) as $post ) {
             $authors[ (int) $post->post_author ] = get_the_author_meta( 'display_name', $post->post_author );
         }
         asort( $authors );
