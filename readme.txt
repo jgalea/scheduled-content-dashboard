@@ -4,7 +4,7 @@ Tags: scheduled, dashboard, widget, editorial calendar, missed schedule
 Requires at least: 5.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.0.8
+Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -115,6 +115,17 @@ Yes. Each site has its own widget showing that site's scheduled content.
 3. Admin bar counter showing scheduled post count
 
 == Changelog ==
+
+= 3.0.0 =
+* Editorial calendar redesign. Month and Week views with a toggle, plus filters by post type and author.
+* Posts now show as colour-coded chips with their time, type, and author; missed posts stand out in red.
+* Drag a scheduled post to another day to reschedule it (rebuilt without jQuery UI), with an undo.
+* Click an empty day to create a post on that date; click a post to edit its title and time inline.
+* "+N more" expands a busy day in place, and day cells size to their content instead of a fixed height.
+* Keyboard navigation, and multi-select to move several posts at once.
+* Export the month to an .ics calendar file.
+* Light and dark, following your system appearance.
+* The calendar now respects the included post types from Settings.
 
 = 2.0.8 =
 * Editorial calendar: uniform faint borders around every day cell, cleaner outer grid, removed the separator line under the legend.

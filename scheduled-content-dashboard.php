@@ -3,7 +3,7 @@
  * Plugin Name:       Scheduled Content Dashboard
  * Plugin URI:        https://wordpress.org/plugins/scheduled-content-dashboard/
  * Description:       Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.
- * Version:           2.0.8
+ * Version:           3.0.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            jeangalea
@@ -26,7 +26,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-admin-page.php';
 
 class Scheduled_Content_Dashboard {
 
-    const VERSION             = '2.0.8';
+    const VERSION             = '3.0.0';
     const MINE_ONLY_META_KEY  = '_scd_mine_only';
     const VIEW_META_KEY       = '_scd_view';
     const AUTO_FIX_TRANSIENT  = 'scd_last_auto_fix';
