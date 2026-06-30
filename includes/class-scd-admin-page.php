@@ -12,6 +12,8 @@ class SCD_Admin_Page {
     const PAGE_SLUG    = 'scd-calendar';
     const AJAX_ACTION  = 'scd_reschedule';
     const AJAX_CREATE  = 'scd_quick_create';
+    const AJAX_EDIT    = 'scd_quick_edit';
+    const AJAX_TRASH   = 'scd_quick_trash';
     const ICS_ACTION   = 'scd_export_ics';
     const NONCE_ACTION = 'scd_calendar_nonce';
 
@@ -24,6 +26,8 @@ class SCD_Admin_Page {
         add_action( 'admin_enqueue_scripts', array( $self, 'enqueue' ) );
         add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $self, 'handle_reschedule' ) );
         add_action( 'wp_ajax_' . self::AJAX_CREATE, array( $self, 'handle_create' ) );
+        add_action( 'wp_ajax_' . self::AJAX_EDIT, array( $self, 'handle_edit' ) );
+        add_action( 'wp_ajax_' . self::AJAX_TRASH, array( $self, 'handle_trash' ) );
         add_action( 'admin_post_' . self::ICS_ACTION, array( $self, 'handle_ics' ) );
     }
 
@@ -69,15 +73,31 @@ class SCD_Admin_Page {
                 'nonce'        => wp_create_nonce( self::NONCE_ACTION ),
                 'rescheduleAction' => self::AJAX_ACTION,
                 'createAction'     => self::AJAX_CREATE,
+                'editAction'       => self::AJAX_EDIT,
+                'trashAction'      => self::AJAX_TRASH,
                 'rescheduling' => __( 'Rescheduling…', 'scheduled-content-dashboard' ),
                 'failed'       => __( 'Reschedule failed.', 'scheduled-content-dashboard' ),
                 'success'      => __( 'Rescheduled.', 'scheduled-content-dashboard' ),
                 'undo'         => __( 'Undo', 'scheduled-content-dashboard' ),
-                'creating'     => __( 'Creating…', 'scheduled-content-dashboard' ),
+                'saving'       => __( 'Saving…', 'scheduled-content-dashboard' ),
+                'saveFailed'   => __( 'Could not save.', 'scheduled-content-dashboard' ),
                 'createFailed' => __( 'Could not create the post.', 'scheduled-content-dashboard' ),
-                'newTitle'     => __( 'Post title', 'scheduled-content-dashboard' ),
+                'newHeading'   => __( 'New post', 'scheduled-content-dashboard' ),
+                'editHeading'  => __( 'Edit post', 'scheduled-content-dashboard' ),
+                'titleLabel'   => __( 'Title', 'scheduled-content-dashboard' ),
+                'whenLabel'    => __( 'Publish at', 'scheduled-content-dashboard' ),
+                'save'         => __( 'Save', 'scheduled-content-dashboard' ),
+                'cancel'       => __( 'Cancel', 'scheduled-content-dashboard' ),
+                'del'          => __( 'Delete', 'scheduled-content-dashboard' ),
+                'openEditor'   => __( 'Open editor', 'scheduled-content-dashboard' ),
+                'confirmDel'   => __( 'Move this scheduled post to the trash?', 'scheduled-content-dashboard' ),
+                'deleted'      => __( 'Moved to trash.', 'scheduled-content-dashboard' ),
                 'moreLabel'    => __( '+%d more', 'scheduled-content-dashboard' ),
                 'lessLabel'    => __( 'Show less', 'scheduled-content-dashboard' ),
+                /* translators: %d: number of selected posts. */
+                'selected'     => __( '%d selected', 'scheduled-content-dashboard' ),
+                'moveHint'     => __( 'Drag any selected post to move them together', 'scheduled-content-dashboard' ),
+                'clear'        => __( 'Clear', 'scheduled-content-dashboard' ),
             )
         );
 
@@ -157,6 +177,33 @@ class SCD_Admin_Page {
                 box-shadow:0 6px 20px rgba(0,0,0,.25); }
             .scd-feedback button { background:none; border:0; color:var(--scd-accent); font-weight:700; cursor:pointer; font-size:13px; }
             .scd-feedback.is-error { background:var(--scd-miss); color:#fff; }
+
+            .scd-day:focus { outline:2px solid var(--scd-accent); outline-offset:-2px; }
+            .scd-day:focus-visible { outline:2px solid var(--scd-accent); }
+            .scd-chip:focus { outline:2px solid var(--scd-accent); outline-offset:1px; }
+            .scd-chip.is-selected { box-shadow:0 0 0 2px var(--scd-accent); }
+
+            .scd-selbar { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--scd-ink);
+                color:var(--scd-bg); padding:8px 14px; border-radius:10px; font-size:13px; z-index:9998; display:none;
+                align-items:center; gap:14px; box-shadow:0 6px 20px rgba(0,0,0,.25); }
+            .scd-selbar.is-on { display:flex; }
+            .scd-selbar button { background:none; border:0; color:var(--scd-accent); font-weight:700; cursor:pointer; font-size:13px; }
+            .scd-selbar .scd-selhint { color:var(--scd-soft); font-size:11.5px; }
+
+            .scd-pop-backdrop { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+                background:rgba(0,0,0,.55); padding:16px; }
+            .scd-pop { position:relative; z-index:10000; width:320px; max-width:100%; background:var(--scd-panel); color:var(--scd-ink);
+                border:1px solid var(--scd-line2); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.28); padding:14px; }
+            .scd-pop h3 { margin:0 0 6px; font-size:13px; font-weight:700; }
+            .scd-pop label { display:block; font-size:11px; color:var(--scd-soft); margin:8px 0 3px; }
+            .scd-pop input { width:100%; box-sizing:border-box; padding:7px 9px; font-size:13px; border:1px solid var(--scd-line2);
+                border-radius:8px; background:var(--scd-bg); color:var(--scd-ink); }
+            .scd-pop-actions { display:flex; align-items:center; gap:8px; margin-top:12px; }
+            .scd-pop-actions .scd-spacer { flex:1; }
+            .scd-pop-actions button, .scd-pop-actions a { font-size:13px; border-radius:8px; padding:6px 11px; cursor:pointer;
+                text-decoration:none; border:1px solid var(--scd-line2); background:var(--scd-bg); color:var(--scd-ink); }
+            .scd-pop-actions .scd-save { background:var(--scd-accent); border-color:var(--scd-accent); color:#fff; font-weight:600; }
+            .scd-pop-actions .scd-del { color:var(--scd-miss); }
         ';
     }
 
@@ -229,6 +276,12 @@ class SCD_Admin_Page {
             </div>
 
             <div id="scd-cal-feedback" class="scd-feedback" role="status" aria-live="polite"></div>
+
+            <div id="scd-selbar" class="scd-selbar" role="status" aria-live="polite">
+                <span class="scd-selcount"></span>
+                <span class="scd-selhint"></span>
+                <button type="button" class="scd-selclear"></button>
+            </div>
         </div>
         <?php
     }
@@ -369,7 +422,8 @@ class SCD_Admin_Page {
         $cap       = $is_week ? 999 : self::MONTH_CAP;
         $overflow  = max( 0, count( $items ) - $cap );
 
-        echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-date="' . esc_attr( $date_key ) . '">';
+        echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-date="' . esc_attr( $date_key ) . '"'
+            . ' tabindex="0" role="gridcell" aria-label="' . esc_attr( wp_date( 'l, F j', strtotime( $date_key ) ) ) . '">';
         echo '<div class="scd-daynum">' . (int) $day_num . '</div>';
 
         $idx = 0;
@@ -402,7 +456,7 @@ class SCD_Admin_Page {
         }
         $dot = $item['is_missed'] ? 'var(--scd-miss)' : $this->type_color( $item['type'] );
         printf(
-            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" title="%6$s">'
+            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" data-title="%12$s" title="%6$s">'
             . '<span class="scd-dot" style="background:%7$s"></span>'
             . '<span class="scd-time">%8$s</span>'
             . '<span class="scd-ti">%9$s</span>'
@@ -418,7 +472,8 @@ class SCD_Admin_Page {
             esc_html( substr( $item['time'], 0, 5 ) ),
             esc_html( $item['title'] ),
             esc_attr( $this->author_color( $item['author'] ) ),
-            esc_html( $this->initial( $item['author'] ) )
+            esc_html( $this->initial( $item['author'] ) ),
+            esc_attr( $item['title'] )
         );
     }
 
@@ -636,6 +691,72 @@ class SCD_Admin_Page {
                 'title'     => $title,
             )
         );
+    }
+
+    public function handle_edit() {
+        check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+        $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        $title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+        $when    = isset( $_POST['when'] ) ? sanitize_text_field( wp_unslash( $_POST['when'] ) ) : '';
+
+        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post || 'future' !== $post->post_status ) {
+            wp_send_json_error( array( 'message' => __( 'Post is not scheduled.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $when ) ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+        if ( '' === $title ) {
+            $title = __( '(no title)', 'scheduled-content-dashboard' );
+        }
+
+        $local = str_replace( 'T', ' ', $when ) . ':00';
+        // Keep it scheduled: a past time would auto-publish.
+        if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
+            $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
+        }
+
+        $result = wp_update_post(
+            array(
+                'ID'            => $post_id,
+                'post_title'    => $title,
+                'post_date'     => $local,
+                'post_date_gmt' => get_gmt_from_date( $local ),
+                'post_status'   => 'future',
+                'edit_date'     => true,
+            ),
+            true
+        );
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
+        }
+
+        wp_send_json_success(
+            array(
+                'id'    => $post_id,
+                'title' => $title,
+                'date'  => wp_date( 'Y-m-d', strtotime( $local ) ),
+                'time'  => wp_date( 'H:i:s', strtotime( $local ) ),
+            )
+        );
+    }
+
+    public function handle_trash() {
+        check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+        $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        if ( ! $post_id || ! current_user_can( 'delete_post', $post_id ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
+        }
+        if ( ! wp_trash_post( $post_id ) ) {
+            wp_send_json_error( array( 'message' => __( 'Could not move to trash.', 'scheduled-content-dashboard' ) ), 500 );
+        }
+        wp_send_json_success( array( 'id' => $post_id ) );
     }
 
     public function handle_ics() {
