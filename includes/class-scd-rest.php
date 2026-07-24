@@ -28,7 +28,18 @@ class SCD_Rest {
                     'post_type' => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                     'author'    => array( 'type' => 'integer' ),
                     'limit'     => array( 'type' => 'integer', 'default' => 50 ),
+                    'status'    => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                 ),
+            )
+        );
+
+        register_rest_route(
+            self::NAMESPACE_V1,
+            '/statuses',
+            array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'get_statuses' ),
+                'permission_callback' => array( $this, 'permissions_read' ),
             )
         );
 
@@ -89,18 +100,47 @@ class SCD_Rest {
         return $id && current_user_can( 'edit_post', $id );
     }
 
+    public function get_statuses() {
+        $selected = SCD_Statuses::selected();
+        $out      = array();
+
+        foreach ( SCD_Statuses::available() as $name => $object ) {
+            $out[] = array(
+                'name'     => $name,
+                'label'    => SCD_Statuses::label( $name ),
+                'color'    => SCD_Statuses::color( $name ),
+                'custom'   => SCD_Statuses::is_custom( $name ),
+                'selected' => in_array( $name, $selected, true ),
+            );
+        }
+
+        return rest_ensure_response( $out );
+    }
+
     public function get_scheduled( WP_REST_Request $request ) {
+        // Defaults to scheduled posts. Pass ?status= to read another pipeline
+        // status the site has switched on, including custom ones.
+        $status = $request['status'] ? (string) $request['status'] : 'future';
+        if ( 'future' !== $status && ! SCD_Statuses::is_selected( $status ) ) {
+            return new WP_Error(
+                'scd_bad_status',
+                __( 'That status is not enabled for this site.', 'scheduled-content-dashboard' ),
+                array( 'status' => 400 )
+            );
+        }
+
         $args = array(
             'post_type'      => $request['post_type'] ? array( $request['post_type'] ) : array_keys( get_post_types( array( 'public' => true ) ) ),
-            'post_status'    => 'future',
+            'post_status'    => $status,
             'posts_per_page' => max( 1, min( 200, (int) $request['limit'] ) ),
             'orderby'        => 'date',
             'order'          => 'ASC',
             'no_found_rows'  => true,
             'date_query'     => array(
                 array(
-                    'column'    => 'post_date_gmt',
-                    'after'     => gmdate( 'Y-m-d H:i:s' ),
+                    // Local column: drafts can carry a zeroed post_date_gmt.
+                    'column'    => 'post_date',
+                    'after'     => current_time( 'mysql' ),
                     'inclusive' => false,
                 ),
             ),
@@ -229,15 +269,18 @@ class SCD_Rest {
         foreach ( $posts as $post ) {
             $type = get_post_type_object( $post->post_type );
             $items[] = array(
-                'id'        => (int) $post->ID,
-                'title'     => get_the_title( $post ),
-                'author'    => get_the_author_meta( 'display_name', $post->post_author ),
-                'author_id' => (int) $post->post_author,
-                'post_type' => $post->post_type,
-                'type_label' => $type ? $type->labels->singular_name : $post->post_type,
-                'date'      => mysql_to_rfc3339( $post->post_date_gmt ),
-                'edit_link' => get_edit_post_link( $post->ID, 'raw' ),
-                'permalink' => get_permalink( $post ),
+                'id'           => (int) $post->ID,
+                'title'        => get_the_title( $post ),
+                'author'       => get_the_author_meta( 'display_name', $post->post_author ),
+                'author_id'    => (int) $post->post_author,
+                'post_type'    => $post->post_type,
+                'type_label'   => $type ? $type->labels->singular_name : $post->post_type,
+                'status'       => $post->post_status,
+                'status_label' => SCD_Statuses::label( $post->post_status ),
+                'date'         => mysql_to_rfc3339( $post->post_date_gmt ),
+                'date_local'   => $post->post_date,
+                'edit_link'    => get_edit_post_link( $post->ID, 'raw' ),
+                'permalink'    => get_permalink( $post ),
             );
         }
         return $items;

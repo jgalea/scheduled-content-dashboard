@@ -27,6 +27,8 @@ class SCD_Settings {
         return array(
             'item_limit'          => 7,
             'included_post_types' => array( 'post' ),
+            'included_statuses'   => array( 'future' ),
+            'overview_group_by'   => 'status',
             'show_drafts'         => 0,
             'default_view'        => 'list',
             'auto_fix_enabled'    => 1,
@@ -66,6 +68,22 @@ class SCD_Settings {
             'included_post_types',
             __( 'Post types', 'scheduled-content-dashboard' ),
             array( $this, 'render_post_types' ),
+            self::PAGE_SLUG,
+            'scd_main'
+        );
+
+        add_settings_field(
+            'included_statuses',
+            __( 'Statuses', 'scheduled-content-dashboard' ),
+            array( $this, 'render_statuses' ),
+            self::PAGE_SLUG,
+            'scd_main'
+        );
+
+        add_settings_field(
+            'overview_group_by',
+            __( 'Overview grouping', 'scheduled-content-dashboard' ),
+            array( $this, 'render_overview_group_by' ),
             self::PAGE_SLUG,
             'scd_main'
         );
@@ -148,6 +166,23 @@ class SCD_Settings {
                 }
             }
         }
+
+        $clean['included_statuses'] = array();
+        if ( isset( $input['included_statuses'] ) && is_array( $input['included_statuses'] ) ) {
+            $available = array_keys( SCD_Statuses::available() );
+            foreach ( $input['included_statuses'] as $status ) {
+                $status = sanitize_key( $status );
+                if ( in_array( $status, $available, true ) ) {
+                    $clean['included_statuses'][] = $status;
+                }
+            }
+        }
+        if ( empty( $clean['included_statuses'] ) ) {
+            $clean['included_statuses'] = array( 'future' );
+        }
+
+        $group = isset( $input['overview_group_by'] ) ? sanitize_key( $input['overview_group_by'] ) : 'status';
+        $clean['overview_group_by'] = in_array( $group, array( 'status', 'type', 'author', 'category' ), true ) ? $group : 'status';
 
         $clean['show_drafts']      = ! empty( $input['show_drafts'] ) ? 1 : 0;
         $clean['auto_fix_enabled'] = ! empty( $input['auto_fix_enabled'] ) ? 1 : 0;
@@ -232,6 +267,53 @@ class SCD_Settings {
         }
         echo '<p class="description">' . esc_html__( 'Select which post types to include in the widget.', 'scheduled-content-dashboard' ) . '</p>';
         echo '</fieldset>';
+    }
+
+    public function render_statuses() {
+        $selected = SCD_Statuses::selected();
+        $has_custom = false;
+
+        echo '<fieldset>';
+        foreach ( SCD_Statuses::available() as $name => $object ) {
+            if ( SCD_Statuses::is_custom( $name ) ) {
+                $has_custom = true;
+            }
+            printf(
+                '<label style="display:block; margin-bottom:4px"><input type="checkbox" name="%1$s[included_statuses][]" value="%2$s" %3$s> %4$s%5$s</label>',
+                esc_attr( self::OPTION_NAME ),
+                esc_attr( $name ),
+                checked( in_array( $name, $selected, true ), true, false ),
+                esc_html( SCD_Statuses::label( $name ) ),
+                SCD_Statuses::is_custom( $name ) ? ' <span class="description">' . esc_html__( '(custom)', 'scheduled-content-dashboard' ) . '</span>' : ''
+            );
+        }
+
+        echo '<p class="description">' . esc_html__( 'Which statuses the calendar and overview can show. Scheduled is always included.', 'scheduled-content-dashboard' ) . '</p>';
+        if ( $has_custom ) {
+            echo '<p class="description">' . esc_html__( 'Custom statuses come from other plugins on this site. Tick them to see that content on the calendar.', 'scheduled-content-dashboard' ) . '</p>';
+        }
+        echo '</fieldset>';
+    }
+
+    public function render_overview_group_by() {
+        $value  = (string) self::get( 'overview_group_by' );
+        $groups = array(
+            'status'   => __( 'Status', 'scheduled-content-dashboard' ),
+            'type'     => __( 'Post type', 'scheduled-content-dashboard' ),
+            'author'   => __( 'Author', 'scheduled-content-dashboard' ),
+            'category' => __( 'Category', 'scheduled-content-dashboard' ),
+        );
+        echo '<select name="' . esc_attr( self::OPTION_NAME ) . '[overview_group_by]">';
+        foreach ( $groups as $key => $label ) {
+            printf(
+                '<option value="%1$s" %2$s>%3$s</option>',
+                esc_attr( $key ),
+                selected( $value, $key, false ),
+                esc_html( $label )
+            );
+        }
+        echo '</select>';
+        echo '<p class="description">' . esc_html__( 'How the Overview screen groups content by default. Each user can change it from the screen itself.', 'scheduled-content-dashboard' ) . '</p>';
     }
 
     public function render_show_drafts() {

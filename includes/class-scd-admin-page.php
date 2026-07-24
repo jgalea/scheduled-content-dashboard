@@ -162,6 +162,9 @@ class SCD_Admin_Page {
                 font-weight:700; color:#fff; display:grid; place-items:center; }
             .scd-chip.is-miss { background:var(--scd-miss-weak); }
             .scd-chip.is-miss .scd-ti { color:var(--scd-miss); }
+            .scd-chip.is-unscheduled { border-style:dashed; }
+            .scd-chip .scd-st { flex:0 0 auto; font-size:9.5px; font-weight:600; text-transform:uppercase;
+                letter-spacing:.04em; border:1px solid; border-radius:999px; padding:0 5px; line-height:14px; }
 
             .scd-more { font-size:11px; font-weight:600; color:var(--scd-accent); cursor:pointer; background:none; border:0; padding:1px 2px; text-align:left; }
             .scd-add { margin-top:auto; border:1px dashed var(--scd-line2); border-radius:7px; color:var(--scd-soft);
@@ -224,7 +227,12 @@ class SCD_Admin_Page {
         $type   = isset( $_GET['scd_type'] ) ? sanitize_key( wp_unslash( $_GET['scd_type'] ) ) : '';
         $author = isset( $_GET['scd_author'] ) ? absint( $_GET['scd_author'] ) : 0;
 
-        return compact( 'view', 'month', 'week', 'type', 'author' );
+        $status = isset( $_GET['scd_status'] ) ? sanitize_key( wp_unslash( $_GET['scd_status'] ) ) : '';
+        if ( '' !== $status && ! SCD_Statuses::is_selected( $status ) ) {
+            $status = '';
+        }
+
+        return compact( 'view', 'month', 'week', 'type', 'author', 'status' );
     }
 
     /** Post types the calendar considers, from settings (fallback to post). */
@@ -251,7 +259,7 @@ class SCD_Admin_Page {
             $end      = wp_date( 'Y-m-t', $month_ts );
         }
 
-        $items_by_day = $this->build_items_by_day( $start, $end, $p['type'], $p['author'] );
+        $items_by_day = $this->build_items_by_day( $start, $end, $p['type'], $p['author'], $p['status'] );
         $authors      = $this->author_choices();
         $base_url     = menu_page_url( self::PAGE_SLUG, false );
 
@@ -268,8 +276,12 @@ class SCD_Admin_Page {
             ?>
 
             <div class="scd-legend">
+                <?php $legend_statuses = array_diff( SCD_Statuses::selected(), array( 'future' ) ); ?>
                 <span><span class="scd-d" style="background:<?php echo esc_attr( $this->type_color( 'post' ) ); ?>"></span><?php esc_html_e( 'Post', 'scheduled-content-dashboard' ); ?></span>
                 <span><span class="scd-d" style="background:<?php echo esc_attr( $this->type_color( 'page' ) ); ?>"></span><?php esc_html_e( 'Page', 'scheduled-content-dashboard' ); ?></span>
+                <?php foreach ( $legend_statuses as $legend_status ) : ?>
+                    <span><span class="scd-d" style="background:<?php echo esc_attr( SCD_Statuses::color( $legend_status ) ); ?>"></span><?php echo esc_html( SCD_Statuses::label( $legend_status ) ); ?></span>
+                <?php endforeach; ?>
                 <span><span class="scd-d" style="background:var(--scd-miss)"></span><?php esc_html_e( 'Missed schedule', 'scheduled-content-dashboard' ); ?></span>
                 <span class="scd-spacer"></span>
                 <span style="font-size:11px"><?php esc_html_e( 'Drag to reschedule · click an empty day to create', 'scheduled-content-dashboard' ); ?></span>
@@ -304,10 +316,17 @@ class SCD_Admin_Page {
             $now  = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m' ) ), $base_url );
         }
 
-        $month_view = add_query_arg( array( 'scd_view' => 'month', 'scd_type' => $p['type'], 'scd_author' => $p['author'] ?: false ), $base_url );
-        $week_view  = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => $is_week ? $start : wp_date( 'Y-m-d' ), 'scd_type' => $p['type'], 'scd_author' => $p['author'] ?: false ), $base_url );
+        $month_view = add_query_arg( array( 'scd_view' => 'month', 'scd_type' => $p['type'], 'scd_author' => $p['author'] ?: false, 'scd_status' => $p['status'] ), $base_url );
+        $week_view  = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => $is_week ? $start : wp_date( 'Y-m-d' ), 'scd_type' => $p['type'], 'scd_author' => $p['author'] ?: false, 'scd_status' => $p['status'] ), $base_url );
 
-        $ics_url = wp_nonce_url( admin_url( 'admin-post.php?action=' . self::ICS_ACTION . '&scd_month=' . rawurlencode( $is_week ? wp_date( 'Y-m', strtotime( $start ) ) : $p['month'] ) ), self::ICS_ACTION );
+        $ics_url = wp_nonce_url(
+            admin_url(
+                'admin-post.php?action=' . self::ICS_ACTION
+                . '&scd_month=' . rawurlencode( $is_week ? wp_date( 'Y-m', strtotime( $start ) ) : $p['month'] )
+                . '&scd_status=' . rawurlencode( $p['status'] )
+            ),
+            self::ICS_ACTION
+        );
         ?>
         <div class="scd-cal-toolbar">
             <h1 class="scd-cal-title"><?php echo esc_html( $title ); ?></h1>
@@ -335,6 +354,17 @@ class SCD_Admin_Page {
                         <option value="<?php echo (int) $id; ?>" <?php selected( $p['author'], $id ); ?>><?php echo esc_html( $name ); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <?php $statuses = SCD_Statuses::selected(); ?>
+                <?php if ( count( $statuses ) > 1 ) : ?>
+                    <select name="scd_status" onchange="this.form.submit()" aria-label="<?php esc_attr_e( 'Filter by status', 'scheduled-content-dashboard' ); ?>">
+                        <option value=""><?php esc_html_e( 'All statuses', 'scheduled-content-dashboard' ); ?></option>
+                        <?php foreach ( $statuses as $status ) : ?>
+                            <option value="<?php echo esc_attr( $status ); ?>" <?php selected( $p['status'], $status ); ?>>
+                                <?php echo esc_html( SCD_Statuses::label( $status ) ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                <?php endif; ?>
             </form>
 
             <span class="scd-nav">
@@ -450,48 +480,81 @@ class SCD_Admin_Page {
     }
 
     private function render_chip( $item, $hidden ) {
+        $status    = isset( $item['status'] ) ? $item['status'] : 'future';
+        $scheduled = ( 'future' === $status );
+
         $classes = array( 'scd-chip' );
         if ( $item['is_missed'] ) {
             $classes[] = 'is-miss';
         }
-        $dot = $item['is_missed'] ? 'var(--scd-miss)' : $this->type_color( $item['type'] );
+        if ( ! $scheduled ) {
+            $classes[] = 'is-unscheduled';
+        }
+
+        if ( $item['is_missed'] ) {
+            $dot = 'var(--scd-miss)';
+        } elseif ( $scheduled ) {
+            $dot = $this->type_color( $item['type'] );
+        } else {
+            $dot = SCD_Statuses::color( $status );
+        }
+
+        $tooltip = $item['time_formatted'] . ' · ' . $item['type_label'] . ' · ' . $item['author'];
+        if ( ! $scheduled ) {
+            $tooltip .= ' · ' . $item['status_label'];
+        }
+
+        // Scheduled chips lead with the time. Anything else leads with its status,
+        // which matters more than the hour and leaves the title its width.
+        $lead = $scheduled
+            ? sprintf( '<span class="scd-time">%s</span>', esc_html( substr( $item['time'], 0, 5 ) ) )
+            : sprintf(
+                '<span class="scd-st" style="color:%1$s;border-color:%1$s">%2$s</span>',
+                esc_attr( SCD_Statuses::color( $status ) ),
+                esc_html( $item['status_label'] )
+            );
+
         printf(
-            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" data-title="%12$s" title="%6$s">'
-            . '<span class="scd-dot" style="background:%7$s"></span>'
-            . '<span class="scd-time">%8$s</span>'
-            . '<span class="scd-ti">%9$s</span>'
-            . '<span class="scd-who" style="background:%10$s">%11$s</span>'
+            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" data-title="%6$s" data-status="%7$s" title="%8$s">'
+            . '<span class="scd-dot" style="background:%9$s"></span>'
+            . '%10$s'
+            . '<span class="scd-ti">%11$s</span>'
+            . '<span class="scd-who" style="background:%12$s">%13$s</span>'
             . '</a>',
             esc_attr( implode( ' ', $classes ) ),
             esc_url( $item['edit_link'] ),
             $hidden ? 'hidden' : '',
             (int) $item['id'],
             esc_attr( $item['time'] ),
-            esc_attr( $item['time_formatted'] . ' · ' . $item['type_label'] . ' · ' . $item['author'] ),
+            esc_attr( $item['title'] ),
+            esc_attr( $status ),
+            esc_attr( $tooltip ),
             esc_attr( $dot ),
-            esc_html( substr( $item['time'], 0, 5 ) ),
+            $lead,
             esc_html( $item['title'] ),
             esc_attr( $this->author_color( $item['author'] ) ),
-            esc_html( $this->initial( $item['author'] ) ),
-            esc_attr( $item['title'] )
+            esc_html( $this->initial( $item['author'] ) )
         );
     }
 
-    private function build_items_by_day( $start, $end, $type, $author ) {
-        $base = $type && in_array( $type, $this->base_types(), true ) ? array( $type ) : $this->base_types();
+    private function build_items_by_day( $start, $end, $type, $author, $status = '' ) {
+        $base     = $type && in_array( $type, $this->base_types(), true ) ? array( $type ) : $this->base_types();
+        $statuses = $status && SCD_Statuses::is_selected( $status ) ? array( $status ) : SCD_Statuses::selected();
 
+        // Filter on the local post_date column: drafts can carry a zeroed
+        // post_date_gmt, so a GMT window would drop them.
         $args = array(
             'post_type'      => $base,
-            'post_status'    => 'future',
+            'post_status'    => $statuses,
             'posts_per_page' => 500,
             'orderby'        => 'date',
             'order'          => 'ASC',
             'no_found_rows'  => true,
             'date_query'     => array(
                 array(
-                    'column'    => 'post_date_gmt',
-                    'after'     => get_gmt_from_date( $start . ' 00:00:00' ),
-                    'before'    => get_gmt_from_date( $end . ' 23:59:59' ),
+                    'column'    => 'post_date',
+                    'after'     => $start . ' 00:00:00',
+                    'before'    => $end . ' 23:59:59',
                     'inclusive' => true,
                 ),
             ),
@@ -521,18 +584,21 @@ class SCD_Admin_Page {
                 'type'           => $post->post_type,
                 'type_label'     => $type_obj ? $type_obj->labels->singular_name : $post->post_type,
                 'author'         => get_the_author_meta( 'display_name', $post->post_author ),
-                'is_missed'      => strtotime( $post->post_date_gmt . ' UTC' ) <= $now_gmt,
+                'status'         => $post->post_status,
+                'status_label'   => SCD_Statuses::label( $post->post_status ),
+                'is_missed'      => SCD_Statuses::can_miss( $post->post_status )
+                    && strtotime( get_gmt_from_date( $post->post_date ) . ' UTC' ) <= $now_gmt,
             );
         }
 
         return $grouped;
     }
 
-    /** Authors who currently have scheduled posts in the base types. */
+    /** Authors who currently have pipeline content in the base types. */
     private function author_choices() {
         $args = array(
             'post_type'      => $this->base_types(),
-            'post_status'    => 'future',
+            'post_status'    => SCD_Statuses::selected(),
             'posts_per_page' => 500,
             'no_found_rows'  => true,
         );
@@ -624,16 +690,18 @@ class SCD_Admin_Page {
         }
 
         $post = get_post( $post_id );
-        if ( ! $post || 'future' !== $post->post_status ) {
-            wp_send_json_error( array( 'message' => __( 'Post is not scheduled.', 'scheduled-content-dashboard' ) ), 400 );
+        if ( ! $post || ! SCD_Statuses::is_selected( $post->post_status ) ) {
+            wp_send_json_error( array( 'message' => __( 'This post is not in the content pipeline.', 'scheduled-content-dashboard' ) ), 400 );
         }
 
+        // Keep whatever status the post already has: moving a draft changes its
+        // intended date, it doesn't schedule or publish it.
         $result = wp_update_post(
             array(
                 'ID'            => $post_id,
                 'post_date'     => $local,
                 'post_date_gmt' => get_gmt_from_date( $local ),
-                'post_status'   => 'future',
+                'post_status'   => $post->post_status,
                 'edit_date'     => true,
             ),
             true
@@ -712,8 +780,8 @@ class SCD_Admin_Page {
         }
 
         $post = get_post( $post_id );
-        if ( ! $post || 'future' !== $post->post_status ) {
-            wp_send_json_error( array( 'message' => __( 'Post is not scheduled.', 'scheduled-content-dashboard' ) ), 400 );
+        if ( ! $post || ! SCD_Statuses::is_selected( $post->post_status ) ) {
+            wp_send_json_error( array( 'message' => __( 'This post is not in the content pipeline.', 'scheduled-content-dashboard' ) ), 400 );
         }
         if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/', $when ) ) {
             wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
@@ -723,8 +791,9 @@ class SCD_Admin_Page {
         }
 
         $local = str_replace( 'T', ' ', $when ) . ':00';
-        // Keep it scheduled: a past time would auto-publish.
-        if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
+        // A scheduled post dated in the past publishes itself, so push it out.
+        // Drafts and custom statuses can sit on any date.
+        if ( 'future' === $post->post_status && strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
             $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
         }
 
@@ -734,7 +803,7 @@ class SCD_Admin_Page {
                 'post_title'    => $title,
                 'post_date'     => $local,
                 'post_date_gmt' => get_gmt_from_date( $local ),
-                'post_status'   => 'future',
+                'post_status'   => $post->post_status,
                 'edit_date'     => true,
             ),
             true
@@ -775,11 +844,16 @@ class SCD_Admin_Page {
         if ( ! preg_match( '/^\d{4}-\d{2}$/', $month ) ) {
             $month = wp_date( 'Y-m' );
         }
+        $status = isset( $_GET['scd_status'] ) ? sanitize_key( wp_unslash( $_GET['scd_status'] ) ) : '';
+        if ( '' !== $status && ! SCD_Statuses::is_selected( $status ) ) {
+            $status = '';
+        }
+
         $month_ts = strtotime( $month . '-01' );
         $start    = wp_date( 'Y-m-01', $month_ts );
         $end      = wp_date( 'Y-m-t', $month_ts );
 
-        $by_day = $this->build_items_by_day( $start, $end, '', 0 );
+        $by_day = $this->build_items_by_day( $start, $end, '', 0, $status );
 
         $lines   = array( 'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Scheduled Content Dashboard//EN', 'CALSCALE:GREGORIAN' );
         $dtstamp = gmdate( 'Ymd\THis\Z' );
@@ -790,7 +864,8 @@ class SCD_Admin_Page {
                 $lines[] = 'UID:scd-' . $item['id'] . '@' . wp_parse_url( home_url(), PHP_URL_HOST );
                 $lines[] = 'DTSTAMP:' . $dtstamp;
                 $lines[] = 'DTSTART:' . $dt;
-                $lines[] = 'SUMMARY:' . $this->ics_escape( $item['title'] . ' (' . $item['type_label'] . ')' );
+                $meta    = 'future' === $item['status'] ? $item['type_label'] : $item['type_label'] . ', ' . $item['status_label'];
+                $lines[] = 'SUMMARY:' . $this->ics_escape( $item['title'] . ' (' . $meta . ')' );
                 $lines[] = 'END:VEVENT';
             }
         }

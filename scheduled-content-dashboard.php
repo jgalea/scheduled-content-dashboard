@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Scheduled Content Dashboard
  * Plugin URI:        https://wordpress.org/plugins/scheduled-content-dashboard/
- * Description:       Editorial calendar with drag-and-drop rescheduling, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.
- * Version:           3.0.0
+ * Description:       Editorial calendar with drag-and-drop rescheduling, content overview, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.
+ * Version:           3.1.0
  * Requires at least: 5.0
  * Requires PHP:      7.4
  * Author:            jeangalea
@@ -19,14 +19,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-settings.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-statuses.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-calendar.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-digest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-rest.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-admin-page.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-overview.php';
 
 class Scheduled_Content_Dashboard {
 
-    const VERSION             = '3.0.0';
+    const VERSION             = '3.1.0';
     const MINE_ONLY_META_KEY  = '_scd_mine_only';
     const VIEW_META_KEY       = '_scd_view';
     const AUTO_FIX_TRANSIENT  = 'scd_last_auto_fix';
@@ -50,6 +52,7 @@ class Scheduled_Content_Dashboard {
         SCD_Digest::init();
         SCD_Rest::init();
         SCD_Admin_Page::init();
+        SCD_Overview::init();
 
         register_deactivation_hook( __FILE__, array( __CLASS__, 'deactivate' ) );
 
@@ -679,6 +682,9 @@ class Scheduled_Content_Dashboard {
                 <a class="scheduled-content-toggle" href="<?php echo esc_url( admin_url( 'admin.php?page=' . SCD_Admin_Page::PAGE_SLUG ) ); ?>">
                     <?php esc_html_e( 'Open full calendar', 'scheduled-content-dashboard' ); ?>
                 </a>
+                <a class="scheduled-content-toggle" href="<?php echo esc_url( admin_url( 'admin.php?page=' . SCD_Overview::PAGE_SLUG ) ); ?>">
+                    <?php esc_html_e( 'Overview', 'scheduled-content-dashboard' ); ?>
+                </a>
                 <span class="scd-view-switch">
                     <?php $this->render_view_toggle_button( 'list', $view ); ?>
                     <?php $this->render_view_toggle_button( 'calendar', $view ); ?>
@@ -970,7 +976,10 @@ class Scheduled_Content_Dashboard {
         $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
         check_admin_referer( self::PUBLISH_NOW_ACTION . '_' . $post_id );
 
-        $redirect = admin_url( 'index.php' );
+        $return   = isset( $_POST['scd_return'] ) ? sanitize_key( wp_unslash( $_POST['scd_return'] ) ) : '';
+        $redirect = 'overview' === $return
+            ? admin_url( 'admin.php?page=' . SCD_Overview::PAGE_SLUG )
+            : admin_url( 'index.php' );
 
         if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
             wp_safe_redirect( add_query_arg( 'scd_notice', 'publish_failed', $redirect ) );
