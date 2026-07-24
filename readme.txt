@@ -2,7 +2,7 @@
 Contributors: jeangalea
 Tags: scheduled, editorial calendar, content overview, dashboard widget, missed schedule
 Requires at least: 5.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 3.1.0
 License: GPLv2 or later
