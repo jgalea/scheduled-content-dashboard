@@ -92,6 +92,7 @@ class SCD_Admin_Page {
                 'openEditor'   => __( 'Open editor', 'scheduled-content-dashboard' ),
                 'confirmDel'   => __( 'Move this scheduled post to the trash?', 'scheduled-content-dashboard' ),
                 'deleted'      => __( 'Moved to trash.', 'scheduled-content-dashboard' ),
+                /* translators: %d: number of additional items hidden in a calendar day. */
                 'moreLabel'    => __( '+%d more', 'scheduled-content-dashboard' ),
                 'lessLabel'    => __( 'Show less', 'scheduled-content-dashboard' ),
                 /* translators: %d: number of selected posts. */
@@ -212,6 +213,7 @@ class SCD_Admin_Page {
 
     /** Resolve current request params. */
     private function params() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $view = isset( $_GET['scd_view'] ) ? sanitize_key( wp_unslash( $_GET['scd_view'] ) ) : 'month';
         if ( ! in_array( $view, array( 'month', 'week' ), true ) ) {
             $view = 'month';
@@ -228,6 +230,7 @@ class SCD_Admin_Page {
         $author = isset( $_GET['scd_author'] ) ? absint( $_GET['scd_author'] ) : 0;
 
         $status = isset( $_GET['scd_status'] ) ? sanitize_key( wp_unslash( $_GET['scd_status'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( '' !== $status && ! SCD_Statuses::is_selected( $status ) ) {
             $status = '';
         }
@@ -529,7 +532,7 @@ class SCD_Admin_Page {
             esc_attr( $status ),
             esc_attr( $tooltip ),
             esc_attr( $dot ),
-            $lead,
+            wp_kses_post( $lead ),
             esc_html( $item['title'] ),
             esc_attr( $this->author_color( $item['author'] ) ),
             esc_html( $this->initial( $item['author'] ) )

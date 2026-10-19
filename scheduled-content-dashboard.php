@@ -3,8 +3,8 @@
  * Plugin Name:       Scheduled Content Dashboard
  * Plugin URI:        https://wordpress.org/plugins/scheduled-content-dashboard/
  * Description:       Editorial calendar with drag-and-drop rescheduling, content overview, dashboard widget, missed-schedule auto-fix, admin bar counter, REST API, and optional email digest.
- * Version:           3.1.0
- * Requires at least: 5.0
+ * Version:           3.1.1
+ * Requires at least: 5.3
  * Requires PHP:      7.4
  * Author:            jeangalea
  * Author URI:        https://jeangalea.com
@@ -29,7 +29,7 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-overview.php';
 
 class Scheduled_Content_Dashboard {
 
-    const VERSION             = '3.1.0';
+    const VERSION             = '3.1.1';
     const MINE_ONLY_META_KEY  = '_scd_mine_only';
     const VIEW_META_KEY       = '_scd_view';
     const AUTO_FIX_TRANSIENT  = 'scd_last_auto_fix';
@@ -91,7 +91,9 @@ class Scheduled_Content_Dashboard {
 
     public function enqueue_styles( $hook ) {
         $is_dashboard = ( 'index.php' === $hook );
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $is_settings  = isset( $_GET['page'] ) && SCD_Settings::PAGE_SLUG === $_GET['page'];
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( ! $is_dashboard && ! $is_settings ) {
             return;
         }
@@ -360,12 +362,14 @@ class Scheduled_Content_Dashboard {
     private function get_filter_state() {
         $types = $this->get_active_post_types();
 
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $type = isset( $_GET['scd_type'] ) ? sanitize_key( wp_unslash( $_GET['scd_type'] ) ) : '';
         if ( '' !== $type && ! in_array( $type, $types, true ) ) {
             $type = '';
         }
 
         $author = isset( $_GET['scd_author'] ) ? absint( $_GET['scd_author'] ) : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
         return array(
             'type'   => $type,
@@ -621,7 +625,7 @@ class Scheduled_Content_Dashboard {
                 printf(
                     /* translators: %d: number of additional scheduled posts not shown in the widget. */
                     esc_html( _n( '+%d more scheduled — open full calendar', '+%d more scheduled — open full calendar', $remaining, 'scheduled-content-dashboard' ) ),
-                    $remaining
+                    absint( $remaining )
                 );
                 ?>
             </a>
@@ -630,11 +634,13 @@ class Scheduled_Content_Dashboard {
     }
 
     private function render_calendar_view() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $month = isset( $_GET['scd_month'] ) ? sanitize_text_field( wp_unslash( $_GET['scd_month'] ) ) : wp_date( 'Y-m' );
         if ( ! preg_match( '/^\d{4}-\d{2}$/', $month ) ) {
             $month = wp_date( 'Y-m' );
         }
         $day = isset( $_GET['scd_day'] ) ? sanitize_text_field( wp_unslash( $_GET['scd_day'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( '' !== $day && ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) ) {
             $day = '';
         }
@@ -732,12 +738,15 @@ class Scheduled_Content_Dashboard {
             return array();
         }
         $in     = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+        // $in is a list of %s placeholders built from the count of $types, so the query is fully prepared.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
         $author_ids = $wpdb->get_col(
             $wpdb->prepare(
                 "SELECT DISTINCT post_author FROM {$wpdb->posts} WHERE post_status = 'future' AND post_type IN ({$in})",
                 $types
             )
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
         $authors = array();
         foreach ( $author_ids as $id ) {
@@ -759,6 +768,7 @@ class Scheduled_Content_Dashboard {
     }
 
     private function maybe_render_notice() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         if ( empty( $_GET['scd_notice'] ) ) {
             return;
         }
@@ -775,6 +785,7 @@ class Scheduled_Content_Dashboard {
         );
 
         $key = sanitize_key( wp_unslash( $_GET['scd_notice'] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( ! isset( $notices[ $key ] ) ) {
             return;
         }
@@ -1056,7 +1067,7 @@ class Scheduled_Content_Dashboard {
         }
 
         if ( isset( $_POST['mine_only'] ) ) {
-            $mine = '1' === (string) $_POST['mine_only'] ? '1' : '0';
+            $mine = '1' === sanitize_text_field( wp_unslash( $_POST['mine_only'] ) ) ? '1' : '0';
             if ( $user_id ) {
                 update_user_meta( $user_id, self::MINE_ONLY_META_KEY, $mine );
             }
@@ -1067,7 +1078,7 @@ class Scheduled_Content_Dashboard {
         // were query-string.
         foreach ( array( 'scd_type', 'scd_author', 'scd_month', 'scd_day' ) as $key ) {
             if ( array_key_exists( $key, $_POST ) ) {
-                $_GET[ $key ] = wp_unslash( $_POST[ $key ] );
+                $_GET[ $key ] = sanitize_text_field( wp_unslash( $_POST[ $key ] ) );
             } else {
                 unset( $_GET[ $key ] );
             }
@@ -1086,7 +1097,9 @@ class Scheduled_Content_Dashboard {
         if ( 'options-general.php' !== $pagenow ) {
             return;
         }
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $requested = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( SCD_Settings::PAGE_SLUG !== $requested ) {
             return;
         }

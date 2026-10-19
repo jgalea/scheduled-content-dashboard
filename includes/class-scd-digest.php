@@ -67,7 +67,9 @@ class SCD_Digest {
 
         $site_name = get_bloginfo( 'name' );
         $subject   = 'daily' === $frequency
+            /* translators: %s: site name. */
             ? sprintf( __( '[%s] Scheduled content for today', 'scheduled-content-dashboard' ), $site_name )
+            /* translators: %s: site name. */
             : sprintf( __( '[%s] Scheduled content for the week', 'scheduled-content-dashboard' ), $site_name );
 
         $body = $this->render_body( $upcoming, $missed );

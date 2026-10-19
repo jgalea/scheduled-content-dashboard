@@ -2,14 +2,14 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Scheduled Content Dashboard 3.1.0\n"
+"Project-Id-Version: Scheduled Content Dashboard 3.1.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/scheduled-content-dashboard\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-24T16:45:54+00:00\n"
+"POT-Creation-Date: 2026-10-19T22:02:56+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: scheduled-content-dashboard\n"
@@ -40,9 +40,9 @@ msgid "https://jeangalea.com"
 msgstr ""
 
 #: includes/class-scd-admin-page.php:36
-#: includes/class-scd-digest.php:153
-#: scheduled-content-dashboard.php:74
-#: scheduled-content-dashboard.php:967
+#: includes/class-scd-digest.php:155
+#: scheduled-content-dashboard.php:75
+#: scheduled-content-dashboard.php:980
 msgid "Scheduled Content"
 msgstr ""
 
@@ -55,9 +55,9 @@ msgid "Editorial Calendar"
 msgstr ""
 
 #: includes/class-scd-admin-page.php:48
-#: includes/class-scd-overview.php:259
+#: includes/class-scd-overview.php:261
 #: includes/class-scd-settings.php:338
-#: scheduled-content-dashboard.php:705
+#: scheduled-content-dashboard.php:712
 msgid "Calendar"
 msgstr ""
 
@@ -90,7 +90,7 @@ msgid "Could not create the post."
 msgstr ""
 
 #: includes/class-scd-admin-page.php:85
-#: includes/class-scd-admin-page.php:379
+#: includes/class-scd-admin-page.php:381
 msgid "New post"
 msgstr ""
 
@@ -99,7 +99,7 @@ msgid "Edit post"
 msgstr ""
 
 #: includes/class-scd-admin-page.php:87
-#: includes/class-scd-overview.php:310
+#: includes/class-scd-overview.php:314
 msgid "Title"
 msgstr ""
 
@@ -131,223 +131,226 @@ msgstr ""
 msgid "Moved to trash."
 msgstr ""
 
+#. translators: %d: number of additional items hidden in a calendar day.
 #. translators: %d: number of additional items.
-#: includes/class-scd-admin-page.php:95
-#: includes/class-scd-admin-page.php:472
+#: includes/class-scd-admin-page.php:96
+#: includes/class-scd-admin-page.php:474
 #, php-format
 msgid "+%d more"
 msgid_plural "+%d more"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-scd-admin-page.php:96
-#: includes/class-scd-admin-page.php:469
+#: includes/class-scd-admin-page.php:97
+#: includes/class-scd-admin-page.php:471
 msgid "Show less"
 msgstr ""
 
 #. translators: %d: number of selected posts.
-#: includes/class-scd-admin-page.php:98
+#: includes/class-scd-admin-page.php:99
 #, php-format
 msgid "%d selected"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:99
+#: includes/class-scd-admin-page.php:100
 msgid "Drag any selected post to move them together"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:100
-#: scheduled-content-dashboard.php:676
+#: includes/class-scd-admin-page.php:101
+#: scheduled-content-dashboard.php:683
 msgid "Clear"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:247
-#: includes/class-scd-overview.php:154
+#: includes/class-scd-admin-page.php:250
+#: includes/class-scd-overview.php:156
 msgid "You do not have permission to view this page."
 msgstr ""
 
-#: includes/class-scd-admin-page.php:280
+#: includes/class-scd-admin-page.php:283
 msgid "Post"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:281
+#: includes/class-scd-admin-page.php:284
 msgid "Page"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:285
+#: includes/class-scd-admin-page.php:288
 msgid "Missed schedule"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:287
+#: includes/class-scd-admin-page.php:290
 msgid "Drag to reschedule · click an empty day to create"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:335
+#: includes/class-scd-admin-page.php:337
 msgid "Month"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:336
+#: includes/class-scd-admin-page.php:338
 msgid "Week"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:344
-#: includes/class-scd-overview.php:231
+#: includes/class-scd-admin-page.php:346
+#: includes/class-scd-overview.php:233
 msgid "Filter by type"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:345
-#: includes/class-scd-overview.php:232
+#: includes/class-scd-admin-page.php:347
+#: includes/class-scd-overview.php:234
 msgid "All types"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:351
-#: includes/class-scd-overview.php:241
+#: includes/class-scd-admin-page.php:353
+#: includes/class-scd-overview.php:243
 msgid "Filter by author"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:352
-#: includes/class-scd-overview.php:242
-#: scheduled-content-dashboard.php:667
+#: includes/class-scd-admin-page.php:354
+#: includes/class-scd-overview.php:244
+#: scheduled-content-dashboard.php:674
 msgid "All authors"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:359
-#: includes/class-scd-overview.php:222
+#: includes/class-scd-admin-page.php:361
+#: includes/class-scd-overview.php:224
 msgid "Filter by status"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:360
-#: includes/class-scd-overview.php:223
+#: includes/class-scd-admin-page.php:362
+#: includes/class-scd-overview.php:225
 msgid "All statuses"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:371
+#: includes/class-scd-admin-page.php:373
 msgid "Previous"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:372
-#: scheduled-content-dashboard.php:898
+#: includes/class-scd-admin-page.php:374
+#: scheduled-content-dashboard.php:910
 msgid "Today"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:373
-#: includes/class-scd-calendar.php:51
+#: includes/class-scd-admin-page.php:375
+#: includes/class-scd-calendar.php:48
 msgid "Next"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:378
+#: includes/class-scd-admin-page.php:380
 msgid "Export .ics"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:478
+#: includes/class-scd-admin-page.php:480
 msgid "Add a post on this day"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:478
+#: includes/class-scd-admin-page.php:480
 msgid "Add"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:580
-#: includes/class-scd-admin-page.php:737
-#: includes/class-scd-admin-page.php:790
-#: includes/class-scd-calendar.php:138
-#: includes/class-scd-digest.php:169
-#: includes/class-scd-digest.php:189
-#: includes/class-scd-overview.php:417
-#: scheduled-content-dashboard.php:827
-#: scheduled-content-dashboard.php:868
+#: includes/class-scd-admin-page.php:582
+#: includes/class-scd-admin-page.php:739
+#: includes/class-scd-admin-page.php:792
+#: includes/class-scd-calendar.php:135
+#: includes/class-scd-digest.php:171
+#: includes/class-scd-digest.php:191
+#: includes/class-scd-overview.php:420
+#: scheduled-content-dashboard.php:839
+#: scheduled-content-dashboard.php:880
 msgid "(no title)"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:656
-#: includes/class-scd-calendar.php:163
+#: includes/class-scd-admin-page.php:658
+#: includes/class-scd-calendar.php:160
 msgid "Sun"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:657
-#: includes/class-scd-calendar.php:164
+#: includes/class-scd-admin-page.php:659
+#: includes/class-scd-calendar.php:161
 msgid "Mon"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:658
-#: includes/class-scd-calendar.php:165
+#: includes/class-scd-admin-page.php:660
+#: includes/class-scd-calendar.php:162
 msgid "Tue"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:659
-#: includes/class-scd-calendar.php:166
+#: includes/class-scd-admin-page.php:661
+#: includes/class-scd-calendar.php:163
 msgid "Wed"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:660
-#: includes/class-scd-calendar.php:167
+#: includes/class-scd-admin-page.php:662
+#: includes/class-scd-calendar.php:164
 msgid "Thu"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:661
-#: includes/class-scd-calendar.php:168
+#: includes/class-scd-admin-page.php:663
+#: includes/class-scd-calendar.php:165
 msgid "Fri"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:662
-#: includes/class-scd-calendar.php:169
+#: includes/class-scd-admin-page.php:664
+#: includes/class-scd-calendar.php:166
 msgid "Sat"
 msgstr ""
 
-#: includes/class-scd-admin-page.php:675
-#: includes/class-scd-admin-page.php:728
-#: includes/class-scd-admin-page.php:779
-#: includes/class-scd-admin-page.php:830
-#: includes/class-scd-admin-page.php:840
-#: scheduled-content-dashboard.php:1044
+#: includes/class-scd-admin-page.php:677
+#: includes/class-scd-admin-page.php:730
+#: includes/class-scd-admin-page.php:781
+#: includes/class-scd-admin-page.php:832
+#: includes/class-scd-admin-page.php:842
+#: scheduled-content-dashboard.php:1057
 msgid "Permission denied."
 msgstr ""
 
-#: includes/class-scd-admin-page.php:678
-#: includes/class-scd-admin-page.php:689
-#: includes/class-scd-admin-page.php:731
-#: includes/class-scd-admin-page.php:787
+#: includes/class-scd-admin-page.php:680
+#: includes/class-scd-admin-page.php:691
+#: includes/class-scd-admin-page.php:733
+#: includes/class-scd-admin-page.php:789
 msgid "Invalid date."
 msgstr ""
 
-#: includes/class-scd-admin-page.php:694
-#: includes/class-scd-admin-page.php:784
+#: includes/class-scd-admin-page.php:696
+#: includes/class-scd-admin-page.php:786
 msgid "This post is not in the content pipeline."
 msgstr ""
 
-#: includes/class-scd-admin-page.php:833
+#: includes/class-scd-admin-page.php:835
 msgid "Could not move to trash."
 msgstr ""
 
-#: includes/class-scd-calendar.php:49
+#: includes/class-scd-calendar.php:46
 msgid "Prev"
 msgstr ""
 
 #. translators: %d: number of items
 #. translators: %d: Number of scheduled posts.
-#: includes/class-scd-calendar.php:109
-#: scheduled-content-dashboard.php:948
+#: includes/class-scd-calendar.php:106
+#: scheduled-content-dashboard.php:961
 #, php-format
 msgid "%d scheduled"
 msgid_plural "%d scheduled"
 msgstr[0] ""
 msgstr[1] ""
 
-#: includes/class-scd-calendar.php:141
+#: includes/class-scd-calendar.php:138
 msgid "Missed"
 msgstr ""
 
-#: includes/class-scd-digest.php:70
+#. translators: %s: site name.
+#: includes/class-scd-digest.php:71
 #, php-format
 msgid "[%s] Scheduled content for today"
 msgstr ""
 
-#: includes/class-scd-digest.php:71
+#. translators: %s: site name.
+#: includes/class-scd-digest.php:73
 #, php-format
 msgid "[%s] Scheduled content for the week"
 msgstr ""
 
 #. translators: %d: number of missed posts
-#: includes/class-scd-digest.php:161
+#: includes/class-scd-digest.php:163
 #, php-format
 msgid "%d missed post"
 msgid_plural "%d missed posts"
@@ -355,7 +358,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: number of upcoming posts
-#: includes/class-scd-digest.php:181
+#: includes/class-scd-digest.php:183
 #, php-format
 msgid "%d scheduled post"
 msgid_plural "%d scheduled posts"
@@ -363,123 +366,123 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: site URL
-#: includes/class-scd-digest.php:200
+#: includes/class-scd-digest.php:202
 #, php-format
 msgid "Sent by Scheduled Content Dashboard on %s"
 msgstr ""
 
 #: includes/class-scd-overview.php:28
-#: includes/class-scd-overview.php:203
+#: includes/class-scd-overview.php:205
 msgid "Content Overview"
 msgstr ""
 
 #: includes/class-scd-overview.php:29
-#: scheduled-content-dashboard.php:686
+#: scheduled-content-dashboard.php:693
 msgid "Overview"
 msgstr ""
 
-#: includes/class-scd-overview.php:139
-#: includes/class-scd-overview.php:312
+#: includes/class-scd-overview.php:141
+#: includes/class-scd-overview.php:316
 #: includes/class-scd-settings.php:301
 msgid "Status"
 msgstr ""
 
-#: includes/class-scd-overview.php:140
+#: includes/class-scd-overview.php:142
 #: includes/class-scd-settings.php:302
 msgid "Post type"
 msgstr ""
 
-#: includes/class-scd-overview.php:141
-#: includes/class-scd-overview.php:318
+#: includes/class-scd-overview.php:143
+#: includes/class-scd-overview.php:322
 #: includes/class-scd-settings.php:303
 msgid "Author"
 msgstr ""
 
-#: includes/class-scd-overview.php:142
+#: includes/class-scd-overview.php:144
 #: includes/class-scd-settings.php:304
 msgid "Category"
 msgstr ""
 
 #. translators: 1: number of items listed, 2: total number of matching items.
-#: includes/class-scd-overview.php:171
+#: includes/class-scd-overview.php:173
 #, php-format
 msgid "Showing the first %1$d of %2$d matching items. Narrow the filters to see the rest."
 msgstr ""
 
-#: includes/class-scd-overview.php:180
+#: includes/class-scd-overview.php:182
 msgid "Nothing in the pipeline for these filters."
 msgstr ""
 
-#: includes/class-scd-overview.php:208
+#: includes/class-scd-overview.php:210
 msgid "Group by"
 msgstr ""
 
 #. translators: %s: grouping dimension, e.g. Status.
-#: includes/class-scd-overview.php:214
+#: includes/class-scd-overview.php:216
 #, php-format
 msgid "Group by %s"
 msgstr ""
 
-#: includes/class-scd-overview.php:248
+#: includes/class-scd-overview.php:250
 msgid "Filter by date"
 msgstr ""
 
-#: includes/class-scd-overview.php:249
+#: includes/class-scd-overview.php:251
 msgid "Any date"
 msgstr ""
 
-#: includes/class-scd-overview.php:250
+#: includes/class-scd-overview.php:252
 msgid "Upcoming"
 msgstr ""
 
-#: includes/class-scd-overview.php:251
+#: includes/class-scd-overview.php:253
 msgid "Past due"
 msgstr ""
 
-#: includes/class-scd-overview.php:257
+#: includes/class-scd-overview.php:259
 msgid "Reset"
 msgstr ""
 
-#: includes/class-scd-overview.php:258
+#: includes/class-scd-overview.php:260
 msgid "Print"
 msgstr ""
 
-#: includes/class-scd-overview.php:270
-#: scheduled-content-dashboard.php:768
+#: includes/class-scd-overview.php:274
+#: scheduled-content-dashboard.php:779
 msgid "Post published."
 msgstr ""
 
-#: includes/class-scd-overview.php:272
-#: scheduled-content-dashboard.php:772
+#: includes/class-scd-overview.php:276
+#: scheduled-content-dashboard.php:783
 msgid "Could not publish post."
 msgstr ""
 
-#: includes/class-scd-overview.php:288
+#: includes/class-scd-overview.php:292
 msgid "items"
 msgstr ""
 
-#: includes/class-scd-overview.php:298
+#: includes/class-scd-overview.php:302
 msgid "past due"
 msgstr ""
 
-#: includes/class-scd-overview.php:315
+#: includes/class-scd-overview.php:319
 msgid "Type"
 msgstr ""
 
-#: includes/class-scd-overview.php:321
+#: includes/class-scd-overview.php:325
 msgid "Categories"
 msgstr ""
 
-#: includes/class-scd-overview.php:323
+#: includes/class-scd-overview.php:327
 msgid "Publish date"
 msgstr ""
 
-#: includes/class-scd-overview.php:341
-#: scheduled-content-dashboard.php:858
+#: includes/class-scd-overview.php:345
+#: scheduled-content-dashboard.php:870
 msgid "Publish now"
 msgstr ""
 
-#: includes/class-scd-overview.php:508
+#: includes/class-scd-overview.php:511
 msgid "Uncategorized"
 msgstr ""
 
@@ -592,7 +595,7 @@ msgid "Show drafts alongside scheduled posts in their own group."
 msgstr ""
 
 #: includes/class-scd-settings.php:334
-#: scheduled-content-dashboard.php:705
+#: scheduled-content-dashboard.php:712
 msgid "List"
 msgstr ""
 
@@ -624,48 +627,48 @@ msgstr ""
 msgid "Published"
 msgstr ""
 
-#: scheduled-content-dashboard.php:114
+#: scheduled-content-dashboard.php:117
 msgid "Refreshing…"
 msgstr ""
 
-#: scheduled-content-dashboard.php:579
+#: scheduled-content-dashboard.php:584
 msgid "No scheduled content found."
 msgstr ""
 
 #. translators: %d: number of additional scheduled posts not shown in the widget.
-#: scheduled-content-dashboard.php:622
+#: scheduled-content-dashboard.php:627
 #, php-format
 msgid "+%d more scheduled — open full calendar"
 msgid_plural "+%d more scheduled — open full calendar"
 msgstr[0] ""
 msgstr[1] ""
 
-#: scheduled-content-dashboard.php:655
+#: scheduled-content-dashboard.php:662
 msgid "Filter"
 msgstr ""
 
-#: scheduled-content-dashboard.php:658
+#: scheduled-content-dashboard.php:665
 msgid "All post types"
 msgstr ""
 
-#: scheduled-content-dashboard.php:674
+#: scheduled-content-dashboard.php:681
 msgid "Apply"
 msgstr ""
 
-#: scheduled-content-dashboard.php:683
+#: scheduled-content-dashboard.php:690
 msgid "Open full calendar"
 msgstr ""
 
-#: scheduled-content-dashboard.php:696
+#: scheduled-content-dashboard.php:703
 msgid "Show all authors"
 msgstr ""
 
-#: scheduled-content-dashboard.php:696
+#: scheduled-content-dashboard.php:703
 msgid "Mine only"
 msgstr ""
 
 #. translators: %d: Number of missed scheduled posts.
-#: scheduled-content-dashboard.php:795
+#: scheduled-content-dashboard.php:807
 #, php-format
 msgid "Missed schedule (%d)"
 msgid_plural "Missed schedule (%d)"
@@ -673,7 +676,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %d: Number of drafts.
-#: scheduled-content-dashboard.php:814
+#: scheduled-content-dashboard.php:826
 #, php-format
 msgid "Drafts (%d)"
 msgid_plural "Drafts (%d)"
@@ -681,30 +684,30 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. translators: %s: Author display name.
-#: scheduled-content-dashboard.php:847
-#: scheduled-content-dashboard.php:886
+#: scheduled-content-dashboard.php:859
+#: scheduled-content-dashboard.php:898
 #, php-format
 msgid " — by %s"
 msgstr ""
 
-#: scheduled-content-dashboard.php:899
+#: scheduled-content-dashboard.php:911
 msgid "Tomorrow"
 msgstr ""
 
-#: scheduled-content-dashboard.php:900
+#: scheduled-content-dashboard.php:912
 msgid "This Week"
 msgstr ""
 
-#: scheduled-content-dashboard.php:901
+#: scheduled-content-dashboard.php:913
 msgid "Next Week"
 msgstr ""
 
-#: scheduled-content-dashboard.php:902
+#: scheduled-content-dashboard.php:914
 msgid "Later"
 msgstr ""
 
 #. translators: %d: Number of missed scheduled posts.
-#: scheduled-content-dashboard.php:955
+#: scheduled-content-dashboard.php:968
 #, php-format
 msgid "(%d missed)"
 msgid_plural "(%d missed)"

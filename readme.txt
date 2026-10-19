@@ -1,10 +1,10 @@
 === Scheduled Content Dashboard ===
 Contributors: jeangalea
 Tags: scheduled, editorial calendar, content overview, dashboard widget, missed schedule
-Requires at least: 5.0
-Tested up to: 7.0
+Requires at least: 5.3
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -130,6 +130,11 @@ Yes. Each site has its own widget showing that site's scheduled content.
 3. Admin bar counter showing scheduled post count
 
 == Changelog ==
+
+= 3.1.1 =
+* Requires WordPress 5.3 or later, which is what the plugin already needed for site-timezone dates.
+* Tested up to WordPress 7.1.
+* Added translator comments and tightened output escaping in the calendar and dashboard widget.
 
 = 3.1.0 =
 * Content Overview screen: everything in the pipeline grouped by status, post type, author, or category, with per-status counts, a past-due filter, and a print layout.

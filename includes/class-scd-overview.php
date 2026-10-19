@@ -106,6 +106,7 @@ class SCD_Overview {
     }
 
     private function params() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $group = isset( $_GET['scd_group'] ) ? sanitize_key( wp_unslash( $_GET['scd_group'] ) ) : '';
         if ( ! array_key_exists( $group, $this->group_choices() ) ) {
             $group = (string) SCD_Settings::get( 'overview_group_by', 'status' );
@@ -130,6 +131,7 @@ class SCD_Overview {
         }
 
         $author = isset( $_GET['scd_author'] ) ? absint( $_GET['scd_author'] ) : 0;
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
         return compact( 'group', 'window', 'status', 'type', 'author' );
     }
@@ -262,10 +264,12 @@ class SCD_Overview {
     }
 
     private function maybe_render_notice() {
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         if ( empty( $_GET['scd_notice'] ) ) {
             return;
         }
         $key = sanitize_key( wp_unslash( $_GET['scd_notice'] ) );
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
         if ( 'published' === $key ) {
             printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html__( 'Post published.', 'scheduled-content-dashboard' ) );
         } elseif ( 'publish_failed' === $key ) {
