@@ -410,7 +410,6 @@ class SCD_Overview {
 
         foreach ( $query->posts as $post ) {
             $type_object = get_post_type_object( $post->post_type );
-            $timestamp   = strtotime( $post->post_date );
 
             $items[] = array(
                 'id'           => (int) $post->ID,
@@ -422,7 +421,7 @@ class SCD_Overview {
                 'type_label'   => $type_object ? $type_object->labels->singular_name : $post->post_type,
                 'author'       => get_the_author_meta( 'display_name', $post->post_author ),
                 'author_id'    => (int) $post->post_author,
-                'when'         => wp_date( get_option( 'date_format' ) . ' · ' . get_option( 'time_format' ), $timestamp ),
+                'when'         => mysql2date( get_option( 'date_format' ) . ' · ' . get_option( 'time_format' ), $post->post_date ),
                 'terms'        => $this->term_names( $post ),
                 'is_missed'    => SCD_Statuses::can_miss( $post->post_status )
                     && strtotime( get_gmt_from_date( $post->post_date ) . ' UTC' ) <= $now,

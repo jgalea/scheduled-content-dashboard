@@ -18,36 +18,33 @@ class SCD_Calendar {
      * @param string $selected_day Currently selected day (YYYY-MM-DD) or empty.
      */
     public static function render( array $items, $month, $base_url, $selected_day = '' ) {
-        $month_ts = strtotime( $month . '-01' );
-        if ( false === $month_ts ) {
-            $month_ts = strtotime( wp_date( 'Y-m-01' ) );
-        }
-
-        $year        = (int) wp_date( 'Y', $month_ts );
-        $month_num   = (int) wp_date( 'n', $month_ts );
-        $days_in     = (int) wp_date( 't', $month_ts );
-        $first_weekday = (int) wp_date( 'w', $month_ts ); // 0 = Sunday.
+        $month_start   = SCD_Dates::month_start( $month );
+        $month         = $month_start->format( 'Y-m' );
+        $year          = (int) $month_start->format( 'Y' );
+        $month_num     = (int) $month_start->format( 'n' );
+        $days_in       = (int) $month_start->format( 't' );
+        $first_weekday = (int) $month_start->format( 'w' ); // 0 = Sunday.
         $start_of_week = (int) get_option( 'start_of_week', 0 );
         $offset        = ( $first_weekday - $start_of_week + 7 ) % 7;
 
         $items_by_day = array();
         foreach ( $items as $item ) {
-            $day_key = wp_date( 'Y-m-d', strtotime( $item['scheduled_date'] ) );
+            $day_key = mysql2date( 'Y-m-d', $item['scheduled_date'], false );
             if ( ! isset( $items_by_day[ $day_key ] ) ) {
                 $items_by_day[ $day_key ] = array();
             }
             $items_by_day[ $day_key ][] = $item;
         }
 
-        $prev_month = wp_date( 'Y-m', strtotime( $month . '-01 -1 month' ) );
-        $next_month = wp_date( 'Y-m', strtotime( $month . '-01 +1 month' ) );
+        $prev_month = SCD_Dates::shift_month( $month, -1 );
+        $next_month = SCD_Dates::shift_month( $month, 1 );
         $today      = wp_date( 'Y-m-d' );
 
         ?>
         <div class="scd-calendar">
             <div class="scd-calendar-nav">
                 <a class="scd-calendar-nav-link" href="<?php echo esc_url( add_query_arg( 'scd_month', $prev_month, $base_url ) ); ?>#scheduled_content_widget">&lsaquo; <?php esc_html_e( 'Prev', 'scheduled-content-dashboard' ); ?></a>
-                <strong><?php echo esc_html( wp_date( 'F Y', $month_ts ) ); ?></strong>
+                <strong><?php echo esc_html( wp_date( 'F Y', $month_start->getTimestamp() ) ); ?></strong>
                 <a class="scd-calendar-nav-link" href="<?php echo esc_url( add_query_arg( 'scd_month', $next_month, $base_url ) ); ?>#scheduled_content_widget"><?php esc_html_e( 'Next', 'scheduled-content-dashboard' ); ?> &rsaquo;</a>
             </div>
             <table class="scd-calendar-grid">
@@ -131,7 +128,7 @@ class SCD_Calendar {
             </table>
             <?php if ( $selected_day && isset( $items_by_day[ $selected_day ] ) ) : ?>
                 <div class="scd-calendar-day-detail">
-                    <h5><?php echo esc_html( wp_date( 'l, F j', strtotime( $selected_day ) ) ); ?></h5>
+                    <h5><?php echo esc_html( mysql2date( 'l, F j', $selected_day ) ); ?></h5>
                     <ul>
                         <?php foreach ( $items_by_day[ $selected_day ] as $item ) : ?>
                             <li>

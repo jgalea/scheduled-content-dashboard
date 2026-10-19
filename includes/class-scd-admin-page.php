@@ -254,9 +254,9 @@ class SCD_Admin_Page {
             $start = $this->week_start( $p['week'] );
             $end   = gmdate( 'Y-m-d', strtotime( $start . ' +6 days' ) );
         } else {
-            $month_ts = strtotime( $p['month'] . '-01' );
-            $start    = wp_date( 'Y-m-01', $month_ts );
-            $end      = wp_date( 'Y-m-t', $month_ts );
+            $month_start = SCD_Dates::month_start( $p['month'] );
+            $start       = $month_start->format( 'Y-m-d' );
+            $end         = $month_start->format( 'Y-m-t' );
         }
 
         $items_by_day = $this->build_items_by_day( $start, $end, $p['type'], $p['author'], $p['status'] );
@@ -302,7 +302,7 @@ class SCD_Admin_Page {
         $is_week  = ( 'week' === $p['view'] );
         $title    = $is_week
             ? $this->week_label( $start )
-            : wp_date( 'F Y', strtotime( $p['month'] . '-01' ) );
+            : wp_date( 'F Y', SCD_Dates::month_start( $p['month'] )->getTimestamp() );
 
         // Prev / today / next targets.
         if ( $is_week ) {
@@ -310,9 +310,8 @@ class SCD_Admin_Page {
             $next = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => gmdate( 'Y-m-d', strtotime( $start . ' +7 days' ) ) ), $base_url );
             $now  = add_query_arg( array( 'scd_view' => 'week', 'scd_week' => wp_date( 'Y-m-d' ) ), $base_url );
         } else {
-            $month_ts = strtotime( $p['month'] . '-01' );
-            $prev = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m', strtotime( '-1 month', $month_ts ) ) ), $base_url );
-            $next = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m', strtotime( '+1 month', $month_ts ) ) ), $base_url );
+            $prev = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => SCD_Dates::shift_month( $p['month'], -1 ) ), $base_url );
+            $next = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => SCD_Dates::shift_month( $p['month'], 1 ) ), $base_url );
             $now  = add_query_arg( array( 'scd_view' => 'month', 'scd_month' => wp_date( 'Y-m' ) ), $base_url );
         }
 
@@ -322,7 +321,7 @@ class SCD_Admin_Page {
         $ics_url = wp_nonce_url(
             admin_url(
                 'admin-post.php?action=' . self::ICS_ACTION
-                . '&scd_month=' . rawurlencode( $is_week ? wp_date( 'Y-m', strtotime( $start ) ) : $p['month'] )
+                . '&scd_month=' . rawurlencode( $is_week ? substr( $start, 0, 7 ) : $p['month'] )
                 . '&scd_status=' . rawurlencode( $p['status'] )
             ),
             self::ICS_ACTION
@@ -382,11 +381,11 @@ class SCD_Admin_Page {
     }
 
     private function render_month( $month, $items_by_day, $today ) {
-        $month_ts      = strtotime( $month . '-01' );
-        $year          = (int) wp_date( 'Y', $month_ts );
-        $month_num     = (int) wp_date( 'n', $month_ts );
-        $days_in       = (int) wp_date( 't', $month_ts );
-        $first_weekday = (int) wp_date( 'w', $month_ts );
+        $month_start   = SCD_Dates::month_start( $month );
+        $year          = (int) $month_start->format( 'Y' );
+        $month_num     = (int) $month_start->format( 'n' );
+        $days_in       = (int) $month_start->format( 't' );
+        $first_weekday = (int) $month_start->format( 'w' );
         $start_of_week = (int) get_option( 'start_of_week', 0 );
         $offset        = ( $first_weekday - $start_of_week + 7 ) % 7;
         ?>
@@ -453,7 +452,7 @@ class SCD_Admin_Page {
         $overflow  = max( 0, count( $items ) - $cap );
 
         echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-date="' . esc_attr( $date_key ) . '"'
-            . ' tabindex="0" role="gridcell" aria-label="' . esc_attr( wp_date( 'l, F j', strtotime( $date_key ) ) ) . '">';
+            . ' tabindex="0" role="gridcell" aria-label="' . esc_attr( mysql2date( 'l, F j', $date_key ) ) . '">';
         echo '<div class="scd-daynum">' . (int) $day_num . '</div>';
 
         $idx = 0;
@@ -572,14 +571,14 @@ class SCD_Admin_Page {
         $grouped = array();
 
         foreach ( $posts as $post ) {
-            $local_date = wp_date( 'Y-m-d', strtotime( $post->post_date ) );
+            $local_date = mysql2date( 'Y-m-d', $post->post_date, false );
             $type_obj   = get_post_type_object( $post->post_type );
 
             $grouped[ $local_date ][] = array(
                 'id'             => (int) $post->ID,
                 'title'          => $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ),
-                'time'           => wp_date( 'H:i:s', strtotime( $post->post_date ) ),
-                'time_formatted' => wp_date( get_option( 'time_format' ), strtotime( $post->post_date ) ),
+                'time'           => mysql2date( 'H:i:s', $post->post_date, false ),
+                'time_formatted' => mysql2date( get_option( 'time_format' ), $post->post_date ),
                 'edit_link'      => get_edit_post_link( $post->ID, 'raw' ),
                 'type'           => $post->post_type,
                 'type_label'     => $type_obj ? $type_obj->labels->singular_name : $post->post_type,
@@ -647,8 +646,8 @@ class SCD_Admin_Page {
     }
 
     private function week_label( $start ) {
-        $end = strtotime( $start . ' +6 days' );
-        return wp_date( 'M j', strtotime( $start ) ) . ' – ' . wp_date( 'M j, Y', $end );
+        $end = gmdate( 'Y-m-d', strtotime( $start . ' +6 days' ) );
+        return mysql2date( 'M j', $start ) . ' – ' . mysql2date( 'M j, Y', $end );
     }
 
     private function dow_abbr( $dow ) {
@@ -816,8 +815,8 @@ class SCD_Admin_Page {
             array(
                 'id'    => $post_id,
                 'title' => $title,
-                'date'  => wp_date( 'Y-m-d', strtotime( $local ) ),
-                'time'  => wp_date( 'H:i:s', strtotime( $local ) ),
+                'date'  => mysql2date( 'Y-m-d', $local, false ),
+                'time'  => mysql2date( 'H:i:s', $local, false ),
             )
         );
     }
@@ -849,9 +848,9 @@ class SCD_Admin_Page {
             $status = '';
         }
 
-        $month_ts = strtotime( $month . '-01' );
-        $start    = wp_date( 'Y-m-01', $month_ts );
-        $end      = wp_date( 'Y-m-t', $month_ts );
+        $month_start = SCD_Dates::month_start( $month );
+        $start       = $month_start->format( 'Y-m-d' );
+        $end         = $month_start->format( 'Y-m-t' );
 
         $by_day = $this->build_items_by_day( $start, $end, '', 0, $status );
 

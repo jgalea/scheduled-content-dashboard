@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-dates.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-settings.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-statuses.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-scd-calendar.php';
@@ -490,7 +491,7 @@ class Scheduled_Content_Dashboard {
 
     private function get_month_items( $month ) {
         $start = $month . '-01 00:00:00';
-        $end   = wp_date( 'Y-m-t 23:59:59', strtotime( $month . '-01' ) );
+        $end   = SCD_Dates::month_start( $month )->format( 'Y-m-t 23:59:59' );
 
         $args = $this->build_query_args(
             array(
@@ -902,13 +903,14 @@ class Scheduled_Content_Dashboard {
             'later'     => array( 'label' => __( 'Later', 'scheduled-content-dashboard' ), 'items' => array() ),
         );
 
-        $today            = wp_date( 'Y-m-d' );
-        $tomorrow         = wp_date( 'Y-m-d', strtotime( '+1 day' ) );
-        $end_of_week      = wp_date( 'Y-m-d', strtotime( 'sunday this week' ) );
-        $end_of_next_week = wp_date( 'Y-m-d', strtotime( 'sunday next week' ) );
+        $now              = new DateTimeImmutable( 'now', wp_timezone() );
+        $today            = $now->format( 'Y-m-d' );
+        $tomorrow         = $now->modify( '+1 day' )->format( 'Y-m-d' );
+        $end_of_week      = $now->modify( 'sunday this week' )->format( 'Y-m-d' );
+        $end_of_next_week = $now->modify( 'sunday next week' )->format( 'Y-m-d' );
 
         foreach ( $content as $item ) {
-            $item_date = wp_date( 'Y-m-d', strtotime( $item['scheduled_date'] ) );
+            $item_date = mysql2date( 'Y-m-d', $item['scheduled_date'], false );
 
             if ( $item_date === $today ) {
                 $groups['today']['items'][] = $item;

@@ -137,6 +137,7 @@ Yes. Each site has its own widget showing that site's scheduled content.
 * Calendar gained a status filter, and dragging a draft moves its intended date without scheduling or publishing it.
 * REST: `GET /statuses`, a `status` argument on `GET /scheduled`, and status fields on every item.
 * New `scheduled_content_dashboard_statuses` filter.
+* Fix: on sites west of UTC the calendar opened on the previous month and Next could get stuck, and posts dated near midnight could show on the wrong day in any non-UTC timezone. The calendar, week view, dashboard widget, Overview and .ics export now do their date math in the site's timezone.
 
 = 3.0.0 =
 * Editorial calendar redesign. Month and Week views with a toggle, plus filters by post type and author.
