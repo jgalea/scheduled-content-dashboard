@@ -270,6 +270,8 @@
         backdrop._return = opts.chip || opts.cell || null;
         pop = backdrop;
         title.focus();
+        title.setSelectionRange(0, 0);
+        title.scrollLeft = 0;
     }
 
     function editChip(chip) {

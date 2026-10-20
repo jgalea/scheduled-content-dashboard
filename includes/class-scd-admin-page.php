@@ -107,13 +107,13 @@ class SCD_Admin_Page {
 
     private function styles() {
         return '
-            .scd-cal { --scd-bg:#ffffff; --scd-panel:#ffffff; --scd-ink:#1d2230; --scd-soft:#5b6472;
+            .scd-cal, .scd-pop-backdrop { --scd-bg:#ffffff; --scd-panel:#ffffff; --scd-ink:#1d2230; --scd-soft:#5b6472;
                 --scd-line:#e6e8ee; --scd-line2:#d6dae3; --scd-accent:#4f46e5; --scd-accent-weak:#eef0fe;
                 --scd-today:#f3f1ff; --scd-miss:#dc2626; --scd-miss-weak:#fdecec; --scd-out:#f7f8fa; --scd-wknd:#fbfbfd;
                 --scd-radius:10px;
                 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--scd-ink); }
             @media (prefers-color-scheme: dark) {
-                .scd-cal { --scd-bg:#0e1016; --scd-panel:#161922; --scd-ink:#e8eaf0; --scd-soft:#9aa3b2;
+                .scd-cal, .scd-pop-backdrop { --scd-bg:#0e1016; --scd-panel:#161922; --scd-ink:#e8eaf0; --scd-soft:#9aa3b2;
                     --scd-line:#252a36; --scd-line2:#313747; --scd-accent:#8b85f5; --scd-accent-weak:#20223a;
                     --scd-today:#1b1c30; --scd-miss:#f87171; --scd-miss-weak:#2a1a1d; --scd-out:#12141c; --scd-wknd:#13151d; }
                 .scd-cal .scd-chip .scd-ti { color:var(--scd-ink); }
@@ -198,7 +198,7 @@ class SCD_Admin_Page {
                 background:rgba(0,0,0,.55); padding:16px; }
             .scd-pop { position:relative; z-index:10000; width:320px; max-width:100%; background:var(--scd-panel); color:var(--scd-ink);
                 border:1px solid var(--scd-line2); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.28); padding:14px; }
-            .scd-pop h3 { margin:0 0 6px; font-size:13px; font-weight:700; }
+            .scd-pop h3 { margin:0 0 6px; color:inherit; font-size:13px; font-weight:700; }
             .scd-pop label { display:block; font-size:11px; color:var(--scd-soft); margin:8px 0 3px; }
             .scd-pop input { width:100%; box-sizing:border-box; padding:7px 9px; font-size:13px; border:1px solid var(--scd-line2);
                 border-radius:8px; background:var(--scd-bg); color:var(--scd-ink); }
