@@ -4,7 +4,7 @@ Tags: scheduled, editorial calendar, content overview, dashboard widget, missed 
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.2
+Stable tag: 3.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -141,6 +141,9 @@ Yes. Each site has its own widget showing that site's scheduled content.
 5. Content Board from the free Pro add-on
 
 == Changelog ==
+
+= 3.1.3 =
+* Readme updated to match what the plugin does, with new screenshots.
 
 = 3.1.2 =
 * Fixed: the calendar's edit popup had a see-through panel, and long titles opened scrolled to their end.
