@@ -12,31 +12,36 @@ Editorial calendar with drag-and-drop, a grouped content overview, and a dashboa
 
 == Description ==
 
-Scheduled Content Dashboard gives you a clean view of everything queued up for publication. It adds a dashboard widget grouping scheduled content by when it's due, a full editorial calendar page where you can drag posts to different days, flags posts WordPress failed to publish on time, and quietly republishes them for you.
+Scheduled Content Dashboard gives you a clear view of everything queued up for publication. It adds a dashboard widget that groups scheduled content by when it's due and an editorial calendar where you drag posts to different days. It also flags posts WordPress failed to publish on time and republishes them for you.
 
-There's also a Content Overview screen that groups everything in the pipeline by status, post type, author, or category, and prints cleanly for an editorial meeting.
+A Content Overview screen groups everything in the pipeline by status, post type, author, or category, and prints cleanly for an editorial meeting.
 
-Most scheduling plugins bolt on social sharing, complex settings, and marketing upsells. This one doesn't. It shows what's scheduled, lets you reshuffle it, and keeps it publishing. That's it.
+There's no social sharing and no upsell. It shows what's scheduled, lets you reshuffle it, and keeps it publishing.
+
+An optional add-on, [Scheduled Content Dashboard Pro](https://github.com/jgalea/scheduled-content-dashboard-pro), adds a drag-and-drop Content Board. It's free on GitHub during early access.
 
 = Features =
 
-* **Full editorial calendar page** — full-screen month grid with drag-and-drop rescheduling (time of day preserved)
-* **Content Overview** — every item in the pipeline grouped by status, post type, author, or category, with a Print button
-* **Custom status support** — statuses registered by editorial workflow plugins show up on the calendar and overview, colour-coded, with their own filter
-* **Dashboard widget** — scheduled content grouped by Today, Tomorrow, This Week, Next Week, and Later
-* **Mini calendar view** — switch the widget to a month grid with dots on days that have scheduled posts
-* **Missed-schedule detection** — posts stuck in `future` status past their date are flagged in red
-* **Auto-fix missed schedules** — quietly republishes stuck posts on admin page loads (most competitors gate this in a paid tier)
-* **One-click "Publish now"** — manually push any missed post live from the widget
-* **Admin bar counter** — see how many posts are scheduled (and if any are missed) from anywhere in the admin
-* **Optional email digest** — daily or weekly summary of missed + upcoming posts to any recipients
-* **REST API** — endpoints for scheduled, missed, counts, publish-now, and reschedule
-* **Post type + author filters** — drill down inside the widget without leaving the dashboard
-* **"Mine only" toggle** — multi-author sites can filter the widget to the current user's content
-* **Drafts in widget (optional)** — show drafts alongside scheduled items
-* **Settings page** — configure item limit, post types, statuses, default view, overview grouping, auto-fix, and digest
-* **All public post types** — posts, pages, products, events, custom post types
-* **Privacy-friendly** — no tracking, no external requests, no cookies
+* **Editorial calendar**: Month and Week views with drag-and-drop rescheduling (time of day preserved) and an undo
+* **Create and edit from the calendar**: click an empty day to add a post, or click a post to change its title and time
+* **Multi-select**: Ctrl/Command-click several posts and drag them together
+* **Export to .ics**: download the month for Google Calendar, Apple Calendar, or Outlook
+* **Content Overview**: every item in the pipeline grouped by status, post type, author, or category, with a past-due filter and a Print button
+* **Custom status support**: statuses registered by editorial workflow plugins show up on the calendar and overview, color-coded, with their own filter
+* **Dashboard widget**: scheduled content grouped by Today, Tomorrow, This Week, Next Week, and Later
+* **Mini calendar view**: switch the widget to a month grid with dots on days that have scheduled posts
+* **Missed-schedule detection**: posts stuck in `future` status past their date are flagged in red
+* **Auto-fix missed schedules**: republishes stuck posts when someone loads an admin page (checks at most every 10 minutes, up to 20 posts per check)
+* **One-click "Publish now"**: manually push any missed post live from the widget or the Overview
+* **Admin bar counter**: shows how many posts are scheduled, and how many are missed, while there's something scheduled
+* **Optional email digest**: daily or weekly summary of missed and upcoming posts, sent at 9am site time
+* **REST API**: endpoints for scheduled, missed, counts, statuses, publish-now, and reschedule
+* **Post type and author filters**: drill down inside the widget without leaving the dashboard
+* **"Mine only" toggle**: multi-author sites can limit the widget to the current user's content
+* **Drafts in widget (optional)**: show drafts alongside scheduled items
+* **Settings page**: item limit, post types, statuses, default view, overview grouping, auto-fix, and digest
+* **Any public post type**: posts, pages, products, events, custom post types. New installs include Posts only; tick others under Scheduled > Settings
+* **Privacy-friendly**: no tracking, no external requests, no cookies
 
 = Use cases =
 
@@ -51,22 +56,22 @@ This plugin does not collect data, send data to external servers, use cookies, o
 
 = Developer hooks =
 
-`scheduled_content_dashboard_query_args` — filter the WP_Query args used for the scheduled content list.
+`scheduled_content_dashboard_query_args`: filter the WP_Query args used for the scheduled content list.
 
-`scheduled_content_dashboard_auto_fix_missed` — return `false` to disable the auto-publish of missed scheduled posts.
+`scheduled_content_dashboard_auto_fix_missed`: return `false` to disable the auto-publish of missed scheduled posts.
 
-`scheduled_content_dashboard_statuses` — filter the list of post statuses the calendar and overview can display.
+`scheduled_content_dashboard_statuses`: filter the list of post statuses the calendar and overview can display.
 
 = REST API =
 
-Base namespace: `scheduled-content-dashboard/v1`. All endpoints require a logged-in user with the `edit_posts` capability.
+Base namespace: `scheduled-content-dashboard/v1`. The `GET` endpoints require a logged-in user with the `edit_posts` capability. The `POST` endpoints require permission to edit that post, and publishing also needs the post type's publish capability.
 
-* `GET /scheduled` — list scheduled posts (query args: `post_type`, `author`, `limit`, `status`)
-* `GET /statuses` — list the statuses this site can show, with labels, colours, and which are enabled
-* `GET /missed` — list missed scheduled posts
-* `GET /counts` — return `{ total, scheduled, missed }`
-* `POST /publish/{id}` — publish a scheduled post now
-* `POST /reschedule/{id}` — change a scheduled post's publish date (body: `date` in any format `strtotime()` understands)
+* `GET /scheduled`: list scheduled posts (query args: `post_type`, `author`, `limit` up to 200, default 50, `status`)
+* `GET /statuses`: list the statuses this site can show, with labels, colors, and which are enabled
+* `GET /missed`: list missed scheduled posts
+* `GET /counts`: return `{ total, scheduled, missed }`
+* `POST /publish/{id}`: publish a scheduled post now
+* `POST /reschedule/{id}`: set a post's publish date and schedule it (body: `date`, any format `strtotime()` understands, must be in the future)
 
 == Installation ==
 
@@ -83,11 +88,11 @@ On your main WordPress admin dashboard. You can drag it to reposition it among y
 
 = What content types are displayed? =
 
-All public post types: posts, pages, and any custom post type registered as public (products, events, portfolios, etc.).
+Any public post type: posts, pages, and custom post types such as products or events. A new install includes Posts only. Tick the others under Scheduled > Settings.
 
 = What is a "missed schedule"? =
 
-WordPress uses wp-cron to publish scheduled posts at their designated time. If cron doesn't fire (low traffic sites, server cron issues, fatal errors), posts stay stuck in `future` status past their publish date. This plugin detects those posts, flags them, and by default auto-publishes them next time you load an admin page.
+WordPress uses wp-cron to publish scheduled posts at their designated time. If cron doesn't fire (low traffic sites, server cron issues, fatal errors), posts stay stuck in `future` status past their publish date. This plugin detects those posts, flags them, and by default publishes them the next time someone loads an admin page. Auto-fix runs in the admin only, so on a site nobody logs in to, a real server cron job hitting `wp-cron.php` is the proper fix.
 
 = How do I disable auto-fix? =
 
@@ -95,11 +100,11 @@ Add this to your theme's `functions.php` or a mu-plugin:
 
 `add_filter( 'scheduled_content_dashboard_auto_fix_missed', '__return_false' );`
 
-You'll still see missed posts flagged in the widget with a manual "Publish now" button.
+You can also turn it off under Scheduled > Settings. You'll still see missed posts flagged in the widget with a manual "Publish now" button.
 
-= How many scheduled items are shown? =
+= How many scheduled items does the widget show? =
 
-Up to 50 per group, ordered by scheduled date (soonest first).
+Seven by default, soonest first. Change it under Scheduled > Settings (1 to 500). A link to the full calendar appears when more are queued.
 
 = Does it work with custom post statuses? =
 
@@ -111,13 +116,17 @@ Seeing the pipeline as a list rather than a grid. Group by status, post type, au
 
 = Does this work with Gutenberg / the block editor? =
 
-Yes. The plugin displays scheduled content and links to standard edit screens — editor-agnostic.
+Yes. The plugin displays scheduled content and links to standard edit screens, so it doesn't depend on the editor.
+
+= Is there a Pro version? =
+
+Scheduled Content Dashboard Pro adds a kanban-style Content Board under Scheduled > Board: one column per pipeline status, and dragging a card changes the post's status. It's free on [GitHub](https://github.com/jgalea/scheduled-content-dashboard-pro) during early access and needs this plugin active.
 
 = Does this work with Multisite? =
 
 Yes. Each site has its own widget showing that site's scheduled content.
 
-= The widget isn't showing — what now? =
+= The widget isn't showing. What now? =
 
 1. Confirm the plugin is activated
 2. Confirm you have scheduled content (posts with future publish dates)
@@ -125,9 +134,11 @@ Yes. Each site has its own widget showing that site's scheduled content.
 
 == Screenshots ==
 
-1. The Scheduled Content widget grouping posts by when they're due
-2. Missed-schedule detection flagging stuck posts with a "Publish now" button
-3. Admin bar counter showing scheduled post count
+1. Editorial calendar with Month and Week views
+2. Drag a post to another day to reschedule it
+3. Content Overview, grouped by status with a past-due filter
+4. Dashboard widget with missed-schedule posts and a "Publish now" button, plus the admin bar counter
+5. Content Board from the free Pro add-on
 
 == Changelog ==
 
@@ -162,13 +173,13 @@ Yes. Each site has its own widget showing that site's scheduled content.
 * Editorial calendar: uniform faint borders around every day cell, cleaner outer grid, removed the separator line under the legend.
 
 = 2.0.7 =
-* Dashboard widget switching view, toggling "Mine only", or applying filters no longer reloads the whole page — swaps content in place.
+* Dashboard widget switching view, toggling "Mine only", or applying filters no longer reloads the whole page; it swaps content in place.
 * Fresh installs now default to the Post type only. Page, Media, and CPTs are unchecked by default.
 * Settings page now lives under Scheduled → Settings (was jumping to WP Settings). Old URL redirects automatically.
 * Editorial calendar: softer day-of-week header, legend has room to breathe.
 
 = 2.0.6 =
-* Changed: Editorial calendar visual redesign — solid dark header row, proper 1px borders on every cell, today cell gets a blue top-bar marker, weekends lightly shaded, other-month days clearly faded, missed days highlighted red
+* Changed: Editorial calendar visual redesign: solid dark header row, proper 1px borders on every cell, today cell gets a blue top-bar marker, weekends lightly shaded, other-month days clearly faded, missed days highlighted red
 * Added: Legend below the calendar showing Scheduled / Missed / Today
 * Changed: Item hover states for clearer interactivity
 
@@ -180,14 +191,14 @@ Yes. Each site has its own widget showing that site's scheduled content.
 * Fixed: Editorial calendar row heights were variable depending on how many posts were scheduled per day (superseded by 2.0.5)
 
 = 2.0.3 =
-* Changed: Widget item limit default lowered from 15 to 7 — keeps the widget tight by default, power users can raise it from settings
+* Changed: Widget item limit default lowered from 15 to 7 to keep the widget tight by default; power users can raise it from settings
 
 = 2.0.2 =
 * Changed: Shortened the wp.org short description to fit the 150-character cap (previously truncated on import)
 
 = 2.0.1 =
-* Changed: Widget item limit default lowered from 50 to 15 — the dashboard widget no longer balloons to full height on sites with a heavy schedule
-* Added: "+N more scheduled — open full calendar" footer link in the widget when there are more scheduled items than the display limit
+* Changed: Widget item limit default lowered from 50 to 15 so the dashboard widget no longer balloons to full height on sites with a heavy schedule
+* Added: "+N more scheduled, open full calendar" footer link in the widget when there are more scheduled items than the display limit
 
 = 2.0.0 =
 * Added: Full editorial calendar admin page with drag-and-drop rescheduling (jQuery UI)
@@ -222,10 +233,10 @@ Yes. Each site has its own widget showing that site's scheduled content.
 == Upgrade Notice ==
 
 = 2.0.0 =
-Major release. Adds full editorial calendar page with drag-and-drop, REST API, and optional email digest. The plugin grows beyond "dashboard widget only" — but the widget and all 1.x features still work the same way.
+Major release. Adds full editorial calendar page with drag-and-drop, REST API, and optional email digest. The plugin grows beyond "dashboard widget only", but the widget and all 1.x features still work the same way.
 
 = 1.2.0 =
-Adds settings page, mini calendar view, post type and author filters, and optional drafts display. Existing users don't need to change anything — defaults match previous behaviour.
+Adds settings page, mini calendar view, post type and author filters, and optional drafts display. Existing users don't need to change anything. Defaults match previous behavior.
 
 = 1.1.0 =
-Adds missed-schedule detection with free auto-fix, admin bar counter, and per-user filtering. Auto-fix is on by default — disable with the scheduled_content_dashboard_auto_fix_missed filter if you want manual control.
+Adds missed-schedule detection with auto-fix, admin bar counter, and per-user filtering. Auto-fix is on by default. Disable with the scheduled_content_dashboard_auto_fix_missed filter if you want manual control.
