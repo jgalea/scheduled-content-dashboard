@@ -744,12 +744,13 @@ class SCD_Admin_Page {
         if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
             $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
         }
+        $status = current_user_can( get_post_type_object( $type )->cap->publish_posts ) ? 'future' : 'draft';
 
         $id = wp_insert_post(
             array(
                 'post_title'    => $title,
                 'post_type'     => $type,
-                'post_status'   => 'future',
+                'post_status'   => $status,
                 'post_date'     => $local,
                 'post_date_gmt' => get_gmt_from_date( $local ),
                 'edit_date'     => true,
