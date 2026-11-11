@@ -338,7 +338,20 @@ class SCD_Admin_Page {
                 <?php esc_html_e( 'Unscheduled drafts', 'scheduled-content-dashboard' ); ?>
                 <span class="scd-drawer-count"><?php echo (int) count( $items ); ?></span>
             </h2>
-            <p class="scd-drawer-hint"><?php esc_html_e( 'Drag a draft onto a day to schedule it. Drag a scheduled post here to unschedule it.', 'scheduled-content-dashboard' ); ?></p>
+            <p class="scd-drawer-hint">
+                <?php
+                $can_schedule = false;
+                foreach ( $this->base_types() as $type_name ) {
+                    $type_obj     = get_post_type_object( $type_name );
+                    $can_schedule = $can_schedule || ( $type_obj && current_user_can( $type_obj->cap->publish_posts ) );
+                }
+                echo esc_html(
+                    $can_schedule
+                        ? __( 'Drag a draft onto a day to schedule it. Drag a scheduled post here to unschedule it.', 'scheduled-content-dashboard' )
+                        : __( 'Your drafts appear here. Open one to keep editing it.', 'scheduled-content-dashboard' )
+                );
+                ?>
+            </p>
             <?php if ( empty( $items ) ) : ?>
                 <p class="scd-drawer-empty"><?php esc_html_e( 'No unscheduled drafts.', 'scheduled-content-dashboard' ); ?></p>
             <?php endif; ?>
@@ -1077,7 +1090,9 @@ class SCD_Admin_Page {
                 $lines[] = 'DTEND:' . gmdate( 'Ymd\THis\Z', strtotime( $dt ) + HOUR_IN_SECONDS );
                 $meta    = 'future' === $item['status'] ? $item['type_label'] : $item['type_label'] . ', ' . $item['status_label'];
                 $lines[] = 'SUMMARY:' . $this->ics_escape( $item['title'] . ' (' . $meta . ')' );
-                $lines[] = 'URL:' . $item['edit_link'];
+                if ( $item['edit_link'] ) {
+                    $lines[] = 'URL:' . $item['edit_link'];
+                }
                 $lines[] = 'END:VEVENT';
             }
         }
