@@ -14,6 +14,8 @@ class SCD_Admin_Page {
     const AJAX_CREATE  = 'scd_quick_create';
     const AJAX_EDIT    = 'scd_quick_edit';
     const AJAX_TRASH   = 'scd_quick_trash';
+    const AJAX_SCHEDULE   = 'scd_schedule_draft';
+    const AJAX_UNSCHEDULE = 'scd_unschedule';
     const ICS_ACTION   = 'scd_export_ics';
     const NONCE_ACTION = 'scd_calendar_nonce';
 
@@ -30,6 +32,8 @@ class SCD_Admin_Page {
         add_action( 'wp_ajax_' . self::AJAX_CREATE, array( $self, 'handle_create' ) );
         add_action( 'wp_ajax_' . self::AJAX_EDIT, array( $self, 'handle_edit' ) );
         add_action( 'wp_ajax_' . self::AJAX_TRASH, array( $self, 'handle_trash' ) );
+        add_action( 'wp_ajax_' . self::AJAX_SCHEDULE, array( $self, 'handle_schedule_draft' ) );
+        add_action( 'wp_ajax_' . self::AJAX_UNSCHEDULE, array( $self, 'handle_unschedule' ) );
         add_action( 'admin_post_' . self::ICS_ACTION, array( $self, 'handle_ics' ) );
     }
 
@@ -77,6 +81,23 @@ class SCD_Admin_Page {
                 'createAction'     => self::AJAX_CREATE,
                 'editAction'       => self::AJAX_EDIT,
                 'trashAction'      => self::AJAX_TRASH,
+                'scheduleAction'   => self::AJAX_SCHEDULE,
+                'unscheduleAction' => self::AJAX_UNSCHEDULE,
+                'types'            => $this->type_choices(),
+                'typeLabel'        => __( 'Post type', 'scheduled-content-dashboard' ),
+                'statusLabel'      => __( 'Status', 'scheduled-content-dashboard' ),
+                'statusDraft'      => __( 'Draft (unscheduled)', 'scheduled-content-dashboard' ),
+                'statusFuture'     => __( 'Scheduled', 'scheduled-content-dashboard' ),
+                'excerptLabel'     => __( 'Excerpt', 'scheduled-content-dashboard' ),
+                'pastHint'         => __( 'Past times are moved to one hour from now.', 'scheduled-content-dashboard' ),
+                'draftHint'        => __( 'Drafts are saved without a date and appear in the Unscheduled drafts list.', 'scheduled-content-dashboard' ),
+                'draftCreated'     => __( 'Saved as a draft.', 'scheduled-content-dashboard' ),
+                'scheduledAt'      => __( 'Scheduled for %s.', 'scheduled-content-dashboard' ),
+                'movedTo'          => __( 'Saved. The time was moved to %s.', 'scheduled-content-dashboard' ),
+                'unscheduled'      => __( 'Moved to unscheduled drafts.', 'scheduled-content-dashboard' ),
+                'dialogClose'      => __( 'Close', 'scheduled-content-dashboard' ),
+                /* translators: 1: number of posts moved, 2: number of posts that failed. */
+                'partial'          => __( '%1$d moved, %2$d failed.', 'scheduled-content-dashboard' ),
                 'rescheduling' => __( 'Rescheduling…', 'scheduled-content-dashboard' ),
                 'failed'       => __( 'Reschedule failed.', 'scheduled-content-dashboard' ),
                 'success'      => __( 'Rescheduled.', 'scheduled-content-dashboard' ),
@@ -163,6 +184,22 @@ class SCD_Admin_Page {
             .scd-chip .scd-st { flex:0 0 auto; font-size:9.5px; font-weight:600; text-transform:uppercase;
                 letter-spacing:.04em; border:1px solid; border-radius:999px; padding:0 5px; line-height:14px; }
 
+            .scd-layout { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
+            .scd-main { flex:1 1 640px; min-width:0; }
+            .scd-drawer { flex:1 1 220px; max-inline-size:300px; background:var(--scd-panel); border:1px solid var(--scd-line);
+                border-radius:var(--scd-radius); padding:12px; box-sizing:border-box; }
+            .scd-drawer.is-over { outline:2px dashed var(--scd-accent); outline-offset:-2px; background:var(--scd-accent-weak); }
+            .scd-drawer-title { margin:0 0 4px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; padding:0; }
+            .scd-drawer-count { font-size:11px; font-weight:600; color:var(--scd-soft); border:1px solid var(--scd-line2); border-radius:999px; padding:0 7px; }
+            .scd-drawer-hint, .scd-drawer-empty { margin:0 0 10px; font-size:12px; color:var(--scd-soft); }
+            .scd-drawer-list { display:flex; flex-direction:column; gap:6px; max-block-size:60vh; overflow:auto; }
+            .scd-dchip { display:flex; flex-direction:column; gap:2px; border:1px dashed var(--scd-line2); border-radius:7px; padding:6px 8px;
+                text-decoration:none; color:var(--scd-ink); background:var(--scd-bg); cursor:grab; }
+            .scd-dchip[draggable="false"] { cursor:pointer; }
+            .scd-dchip:hover { border-color:var(--scd-accent); }
+            .scd-dchip:focus { outline:2px solid var(--scd-accent); outline-offset:1px; }
+            .scd-dchip .scd-ti { font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+            .scd-dchip .scd-dmeta { font-size:11px; color:var(--scd-soft); }
             .scd-more { font-size:11px; font-weight:600; color:var(--scd-accent); cursor:pointer; background:none; border:0; padding:1px 2px; text-align:left; }
             .scd-add { margin-top:auto; border:1px dashed var(--scd-line2); border-radius:7px; color:var(--scd-soft);
                 font-size:11.5px; text-align:center; padding:5px 0; cursor:pointer; opacity:0; transition:opacity .12s; background:none; width:100%; }
@@ -196,6 +233,8 @@ class SCD_Admin_Page {
             .scd-pop { position:relative; z-index:10000; width:320px; max-width:100%; background:var(--scd-panel); color:var(--scd-ink);
                 border:1px solid var(--scd-line2); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.28); padding:14px; }
             .scd-pop h3 { margin:0 0 6px; color:inherit; font-size:13px; font-weight:700; }
+            .scd-pop select, .scd-pop textarea { width:100%; box-sizing:border-box; padding:7px 9px; font-size:13px; border:1px solid var(--scd-line2); border-radius:8px; background:var(--scd-bg); color:var(--scd-ink); }
+            .scd-pop .scd-hint { margin:6px 0 0; font-size:11px; color:var(--scd-soft); }
             .scd-pop label { display:block; font-size:11px; color:var(--scd-soft); margin:8px 0 3px; }
             .scd-pop input { width:100%; box-sizing:border-box; padding:7px 9px; font-size:13px; border:1px solid var(--scd-line2);
                 border-radius:8px; background:var(--scd-bg); color:var(--scd-ink); }
@@ -241,6 +280,80 @@ class SCD_Admin_Page {
         return $types ? $types : array( 'post' );
     }
 
+    private function type_choices() {
+        $out = array();
+        foreach ( $this->base_types() as $name ) {
+            $obj = get_post_type_object( $name );
+            if ( ! $obj || ! current_user_can( $obj->cap->create_posts ) ) {
+                continue;
+            }
+            $out[] = array(
+                'name'       => $name,
+                'label'      => $obj->labels->singular_name,
+                'canPublish' => current_user_can( $obj->cap->publish_posts ),
+            );
+        }
+        return $out;
+    }
+
+    private function draft_items() {
+        global $wpdb;
+
+        $types = $this->base_types();
+        $in    = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+        $sql   = "SELECT ID FROM {$wpdb->posts} WHERE post_status = 'draft' AND post_date_gmt = '0000-00-00 00:00:00' AND post_type IN ({$in})";
+        $vals  = $types;
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            $sql   .= ' AND post_author = %d';
+            $vals[] = get_current_user_id();
+        }
+        $sql .= ' ORDER BY post_modified DESC LIMIT 50';
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders are built from the counts above.
+        $ids = $wpdb->get_col( $wpdb->prepare( $sql, $vals ) );
+
+        $items = array();
+        foreach ( $ids as $id ) {
+            if ( ! current_user_can( 'edit_post', $id ) ) {
+                continue;
+            }
+            $post      = get_post( $id );
+            $type_obj  = get_post_type_object( $post->post_type );
+            $items[] = array(
+                'id'         => (int) $id,
+                'title'      => $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ),
+                'edit_link'  => get_edit_post_link( $id, 'raw' ),
+                'type_label' => $type_obj ? $type_obj->labels->singular_name : $post->post_type,
+                'author'     => get_the_author_meta( 'display_name', $post->post_author ),
+                'can_drag'   => $type_obj && current_user_can( $type_obj->cap->publish_posts ),
+            );
+        }
+        return $items;
+    }
+
+    private function render_drawer() {
+        $items = $this->draft_items();
+        ?>
+        <aside class="scd-drawer" id="scd-drawer" aria-labelledby="scd-drawer-title">
+            <h2 id="scd-drawer-title" class="scd-drawer-title">
+                <?php esc_html_e( 'Unscheduled drafts', 'scheduled-content-dashboard' ); ?>
+                <span class="scd-drawer-count"><?php echo (int) count( $items ); ?></span>
+            </h2>
+            <p class="scd-drawer-hint"><?php esc_html_e( 'Drag a draft onto a day to schedule it. Drag a scheduled post here to unschedule it.', 'scheduled-content-dashboard' ); ?></p>
+            <?php if ( empty( $items ) ) : ?>
+                <p class="scd-drawer-empty"><?php esc_html_e( 'No unscheduled drafts.', 'scheduled-content-dashboard' ); ?></p>
+            <?php endif; ?>
+            <div class="scd-drawer-list">
+                <?php foreach ( $items as $item ) : ?>
+                    <a class="scd-dchip" href="<?php echo esc_url( $item['edit_link'] ); ?>" draggable="<?php echo $item['can_drag'] ? 'true' : 'false'; ?>" data-post-id="<?php echo (int) $item['id']; ?>" data-title="<?php echo esc_attr( $item['title'] ); ?>">
+                        <span class="scd-ti"><?php echo esc_html( $item['title'] ); ?></span>
+                        <span class="scd-dmeta"><?php echo esc_html( $item['type_label'] . ' · ' . $item['author'] ); ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </aside>
+        <?php
+    }
+
     public function render_page() {
         if ( ! current_user_can( 'edit_posts' ) ) {
             wp_die( esc_html__( 'You do not have permission to view this page.', 'scheduled-content-dashboard' ) );
@@ -269,13 +382,18 @@ class SCD_Admin_Page {
                 <div class="notice notice-warning inline"><p><?php esc_html_e( 'This range has more posts than the calendar can show. Narrow it with the filters above or switch to week view.', 'scheduled-content-dashboard' ); ?></p></div>
             <?php endif; ?>
 
-            <?php
-            if ( 'week' === $p['view'] ) {
-                $this->render_week( $start, $items_by_day, $today );
-            } else {
-                $this->render_month( $p['month'], $items_by_day, $today );
-            }
-            ?>
+            <div class="scd-layout">
+                <div class="scd-main">
+                    <?php
+                    if ( 'week' === $p['view'] ) {
+                        $this->render_week( $start, $items_by_day, $today );
+                    } else {
+                        $this->render_month( $p['month'], $items_by_day, $today );
+                    }
+                    ?>
+                </div>
+                <?php $this->render_drawer(); ?>
+            </div>
 
             <div class="scd-legend">
                 <?php $legend_statuses = array_diff( SCD_Statuses::selected(), array( 'future' ) ); ?>
@@ -516,7 +634,7 @@ class SCD_Admin_Page {
             );
 
         printf(
-            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" data-title="%6$s" data-status="%7$s" title="%8$s">'
+            '<a class="%1$s" href="%2$s" %3$s draggable="true" data-post-id="%4$d" data-time="%5$s" data-title="%6$s" data-status="%7$s" data-excerpt="%14$s" title="%8$s">'
             . '<span class="scd-dot" style="background:%9$s"></span>'
             . '%10$s'
             . '<span class="scd-ti">%11$s</span>'
@@ -534,7 +652,8 @@ class SCD_Admin_Page {
             wp_kses_post( $lead ),
             esc_html( $item['title'] ),
             esc_attr( $this->author_color( $item['author'] ) ),
-            esc_html( $this->initial( $item['author'] ) )
+            esc_html( $this->initial( $item['author'] ) ),
+            esc_attr( $item['excerpt'] )
         );
     }
 
@@ -584,6 +703,7 @@ class SCD_Admin_Page {
                 'time_formatted' => mysql2date( get_option( 'time_format' ), $post->post_date ),
                 'edit_link'      => get_edit_post_link( $post->ID, 'raw' ),
                 'type'           => $post->post_type,
+                'excerpt'        => $post->post_excerpt,
                 'type_label'     => $type_obj ? $type_obj->labels->singular_name : $post->post_type,
                 'author'         => get_the_author_meta( 'display_name', $post->post_author ),
                 'status'         => $post->post_status,
@@ -708,39 +828,50 @@ class SCD_Admin_Page {
         $title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
 
         $types = $this->base_types();
-        $type  = $types[0];
+        $type  = isset( $_POST['post_type'] ) ? sanitize_key( wp_unslash( $_POST['post_type'] ) ) : '';
+        if ( ! in_array( $type, $types, true ) ) {
+            $type = $types[0];
+        }
+        $type_obj = get_post_type_object( $type );
 
-        if ( ! current_user_can( get_post_type_object( $type )->cap->create_posts ) ) {
+        if ( ! current_user_can( $type_obj->cap->create_posts ) ) {
             wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
         }
-        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
-            wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
-        }
-        if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
-            $time = '09:00';
-        }
+        $can_publish = current_user_can( $type_obj->cap->publish_posts );
+        $status      = isset( $_POST['status'] ) ? sanitize_key( wp_unslash( $_POST['status'] ) ) : ( $can_publish ? 'future' : 'draft' );
+        $status      = ( 'future' === $status && $can_publish ) ? 'future' : 'draft';
+
         if ( '' === $title ) {
             $title = __( '(no title)', 'scheduled-content-dashboard' );
         }
 
-        $local = $date . ' ' . $time . ':00';
-        // Ensure the date is in the future so the post stays 'future'.
-        if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
-            $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
-        }
-        $status = current_user_can( get_post_type_object( $type )->cap->publish_posts ) ? 'future' : 'draft';
-
-        $id = wp_insert_post(
-            array(
-                'post_title'    => $title,
-                'post_type'     => $type,
-                'post_status'   => $status,
-                'post_date'     => $local,
-                'post_date_gmt' => get_gmt_from_date( $local ),
-                'edit_date'     => true,
-            ),
-            true
+        $args = array(
+            'post_title'  => $title,
+            'post_type'   => $type,
+            'post_status' => $status,
         );
+        $local = '';
+        $moved = false;
+
+        if ( 'future' === $status ) {
+            if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+                wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
+            }
+            if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
+                $time = '09:00';
+            }
+            $local = $date . ' ' . $time . ':00';
+            // A past date would publish immediately, so push it out.
+            if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
+                $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
+                $moved = true;
+            }
+            $args['post_date']     = $local;
+            $args['post_date_gmt'] = get_gmt_from_date( $local );
+            $args['edit_date']     = true;
+        }
+
+        $id = wp_insert_post( $args, true );
 
         if ( is_wp_error( $id ) ) {
             wp_send_json_error( array( 'message' => $id->get_error_message() ), 500 );
@@ -751,6 +882,10 @@ class SCD_Admin_Page {
                 'id'        => (int) $id,
                 'edit_link' => get_edit_post_link( $id, 'raw' ),
                 'title'     => $title,
+                'status'    => $status,
+                'date'      => $local,
+                'when'      => $local ? mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $local ) : '',
+                'moved'     => $moved,
             )
         );
     }
@@ -778,19 +913,78 @@ class SCD_Admin_Page {
         }
 
         $local = str_replace( 'T', ' ', $when ) . ':00';
+        $moved = false;
         // A scheduled post dated in the past publishes itself, so push it out.
         // Drafts and custom statuses can sit on any date.
         if ( 'future' === $post->post_status && strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
             $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
+            $moved = true;
+        }
+
+        $update = array(
+            'ID'            => $post_id,
+            'post_title'    => $title,
+            'post_date'     => $local,
+            'post_date_gmt' => get_gmt_from_date( $local ),
+            'post_status'   => $post->post_status,
+            'edit_date'     => true,
+        );
+        if ( isset( $_POST['excerpt'] ) ) {
+            $update['post_excerpt'] = sanitize_textarea_field( wp_unslash( $_POST['excerpt'] ) );
+        }
+        $result = wp_update_post( $update, true );
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
+        }
+
+        wp_send_json_success(
+            array(
+                'id'      => $post_id,
+                'title'   => $title,
+                'date'    => mysql2date( 'Y-m-d', $local, false ),
+                'time'    => mysql2date( 'H:i:s', $local, false ),
+                'excerpt' => get_post_field( 'post_excerpt', $post_id ),
+                'moved'   => $moved,
+                'when'    => mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $local ),
+            )
+        );
+    }
+
+    public function handle_schedule_draft() {
+        check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+        $post_id  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        $new_date = isset( $_POST['new_date'] ) ? sanitize_text_field( wp_unslash( $_POST['new_date'] ) ) : '';
+        $time     = isset( $_POST['time'] ) ? sanitize_text_field( wp_unslash( $_POST['time'] ) ) : '09:00';
+        $post     = $post_id ? get_post( $post_id ) : null;
+        $type_obj = $post ? get_post_type_object( $post->post_type ) : null;
+
+        if ( ! $post || ! $type_obj || ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( $type_obj->cap->publish_posts ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
+        }
+        if ( 'draft' !== $post->post_status || ! in_array( $post->post_type, $this->base_types(), true ) ) {
+            wp_send_json_error( array( 'message' => __( 'Only drafts can be scheduled from here.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $new_date ) ) {
+            wp_send_json_error( array( 'message' => __( 'Invalid date.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+        if ( ! preg_match( '/^\d{2}:\d{2}$/', $time ) ) {
+            $time = '09:00';
+        }
+
+        $local = $new_date . ' ' . $time . ':00';
+        $moved = false;
+        if ( strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
+            $local = wp_date( 'Y-m-d H:i:s', time() + 3600 );
+            $moved = true;
         }
 
         $result = wp_update_post(
             array(
                 'ID'            => $post_id,
-                'post_title'    => $title,
+                'post_status'   => 'future',
                 'post_date'     => $local,
                 'post_date_gmt' => get_gmt_from_date( $local ),
-                'post_status'   => $post->post_status,
                 'edit_date'     => true,
             ),
             true
@@ -802,11 +996,40 @@ class SCD_Admin_Page {
         wp_send_json_success(
             array(
                 'id'    => $post_id,
-                'title' => $title,
-                'date'  => mysql2date( 'Y-m-d', $local, false ),
-                'time'  => mysql2date( 'H:i:s', $local, false ),
+                'moved' => $moved,
+                'when'  => mysql2date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $local ),
             )
         );
+    }
+
+    public function handle_unschedule() {
+        check_ajax_referer( self::NONCE_ACTION, 'nonce' );
+
+        $post_id  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        $post     = $post_id ? get_post( $post_id ) : null;
+        $type_obj = $post ? get_post_type_object( $post->post_type ) : null;
+
+        if ( ! $post || ! $type_obj || ! current_user_can( 'edit_post', $post_id ) || ! current_user_can( $type_obj->cap->publish_posts ) ) {
+            wp_send_json_error( array( 'message' => __( 'Permission denied.', 'scheduled-content-dashboard' ) ), 403 );
+        }
+        if ( 'future' !== $post->post_status ) {
+            wp_send_json_error( array( 'message' => __( 'Only scheduled posts can be unscheduled.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+
+        $result = wp_update_post(
+            array(
+                'ID'            => $post_id,
+                'post_status'   => 'draft',
+                'post_date_gmt' => '0000-00-00 00:00:00',
+                'edit_date'     => true,
+            ),
+            true
+        );
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( array( 'message' => $result->get_error_message() ), 500 );
+        }
+
+        wp_send_json_success( array( 'id' => $post_id ) );
     }
 
     public function handle_trash() {
