@@ -27,8 +27,15 @@ class SCD_Settings {
     }
 
     public static function post_types() {
+        $public = array_keys( get_post_types( array( 'public' => true ) ) );
+
+        // Until the settings are saved, cover every public type that can be scheduled.
+        if ( false === get_option( self::OPTION_NAME, false ) ) {
+            $schedulable = array_keys( get_post_types( array( 'public' => true, 'show_ui' => true ) ) );
+            return array_values( array_diff( $schedulable, array( 'attachment' ) ) );
+        }
+
         $configured = (array) self::get( 'included_post_types', array() );
-        $public     = array_keys( get_post_types( array( 'public' => true ) ) );
         return array_values( array_intersect( $configured, $public ) );
     }
 
@@ -291,7 +298,7 @@ class SCD_Settings {
     }
 
     public function render_post_types() {
-        $selected   = (array) self::get( 'included_post_types' );
+        $selected   = self::post_types();
         $post_types = get_post_types( array( 'public' => true ), 'objects' );
 
         echo '<fieldset>';
