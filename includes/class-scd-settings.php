@@ -11,6 +11,7 @@ class SCD_Settings {
 
     const OPTION_NAME = 'scheduled_content_dashboard_settings';
     const PAGE_SLUG   = 'scheduled-content-dashboard';
+    const MISSED_GRACE = 120;
 
     public static function init() {
         $self = new self();
@@ -21,6 +22,12 @@ class SCD_Settings {
     public static function get( $key, $default = null ) {
         $settings = wp_parse_args( get_option( self::OPTION_NAME, array() ), self::defaults() );
         return array_key_exists( $key, $settings ) ? $settings[ $key ] : $default;
+    }
+
+    public static function post_types() {
+        $configured = (array) self::get( 'included_post_types', array() );
+        $public     = array_keys( get_post_types( array( 'public' => true ) ) );
+        return array_values( array_intersect( $configured, $public ) );
     }
 
     public static function defaults() {

@@ -129,8 +129,13 @@ class SCD_Rest {
             );
         }
 
+        $types = SCD_Settings::post_types();
+        if ( $request['post_type'] ) {
+            $types = in_array( $request['post_type'], $types, true ) ? array( $request['post_type'] ) : array();
+        }
+
         $args = array(
-            'post_type'      => $request['post_type'] ? array( $request['post_type'] ) : array_keys( get_post_types( array( 'public' => true ) ) ),
+            'post_type'      => $types ? $types : array( '__scd_no_types__' ),
             'post_status'    => $status,
             'posts_per_page' => max( 1, min( 200, (int) $request['limit'] ) ),
             'orderby'        => 'date',
@@ -148,38 +153,42 @@ class SCD_Rest {
         if ( $request['author'] ) {
             $args['author'] = (int) $request['author'];
         }
+        $args = $this->scope_to_user( $args );
 
         return rest_ensure_response( $this->posts_to_items( get_posts( $args ) ) );
     }
 
     public function get_missed() {
         $posts = get_posts(
-            array(
-                'post_type'      => array_keys( get_post_types( array( 'public' => true ) ) ),
-                'post_status'    => 'future',
-                'posts_per_page' => 200,
-                'orderby'        => 'date',
-                'order'          => 'ASC',
-                'no_found_rows'  => true,
-                'date_query'     => array(
-                    array(
-                        'column' => 'post_date_gmt',
-                        'before' => gmdate( 'Y-m-d H:i:s' ),
+            $this->scope_to_user(
+                array(
+                    'post_type'      => $this->types_or_none(),
+                    'post_status'    => 'future',
+                    'posts_per_page' => 200,
+                    'orderby'        => 'date',
+                    'order'          => 'ASC',
+                    'no_found_rows'  => true,
+                    'date_query'     => array(
+                        array(
+                            'column' => 'post_date_gmt',
+                            'before' => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
+                        ),
                     ),
-                ),
+                )
             )
         );
         return rest_ensure_response( $this->posts_to_items( $posts ) );
     }
 
     public function get_counts() {
-        $types  = array_keys( get_post_types( array( 'public' => true ) ) );
-        $base   = array(
-            'post_type'      => $types,
-            'post_status'    => 'future',
-            'posts_per_page' => 1,
-            'fields'         => 'ids',
-            'no_found_rows'  => false,
+        $base   = $this->scope_to_user(
+            array(
+                'post_type'      => $this->types_or_none(),
+                'post_status'    => 'future',
+                'posts_per_page' => 1,
+                'fields'         => 'ids',
+                'no_found_rows'  => false,
+            )
         );
         $total  = new WP_Query( $base );
         $missed = new WP_Query(
@@ -189,7 +198,7 @@ class SCD_Rest {
                     'date_query' => array(
                         array(
                             'column' => 'post_date_gmt',
-                            'before' => gmdate( 'Y-m-d H:i:s' ),
+                            'before' => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
                         ),
                     ),
                 )
@@ -225,20 +234,30 @@ class SCD_Rest {
 
     public function reschedule( WP_REST_Request $request ) {
         $id   = (int) $request['id'];
-        $date = (string) $request['date'];
         $post = get_post( $id );
 
         if ( ! $post ) {
             return new WP_Error( 'scd_not_found', __( 'Post not found.', 'scheduled-content-dashboard' ), array( 'status' => 404 ) );
         }
+        if ( 'future' !== $post->post_status ) {
+            return new WP_Error( 'scd_not_scheduled', __( 'Post is not scheduled.', 'scheduled-content-dashboard' ), array( 'status' => 400 ) );
+        }
+        $type = get_post_type_object( $post->post_type );
+        if ( ! $type || ! current_user_can( $type->cap->publish_posts ) ) {
+            return new WP_Error( 'scd_cannot_publish', __( 'Not allowed to schedule this post type.', 'scheduled-content-dashboard' ), array( 'status' => 403 ) );
+        }
 
-        $ts = strtotime( $date );
-        if ( false === $ts || $ts <= time() ) {
+        try {
+            $when = new DateTimeImmutable( (string) $request['date'], wp_timezone() );
+        } catch ( Exception $e ) {
+            $when = null;
+        }
+        if ( ! $when || $when->getTimestamp() <= time() ) {
             return new WP_Error( 'scd_bad_date', __( 'Reschedule date must be in the future.', 'scheduled-content-dashboard' ), array( 'status' => 400 ) );
         }
 
-        $new_local = wp_date( 'Y-m-d H:i:s', $ts );
-        $new_gmt   = gmdate( 'Y-m-d H:i:s', $ts );
+        $new_local = $when->format( 'Y-m-d H:i:s' );
+        $new_gmt   = gmdate( 'Y-m-d H:i:s', $when->getTimestamp() );
 
         $result = wp_update_post(
             array(
@@ -264,9 +283,24 @@ class SCD_Rest {
         );
     }
 
+    private function types_or_none() {
+        $types = SCD_Settings::post_types();
+        return $types ? $types : array( '__scd_no_types__' );
+    }
+
+    private function scope_to_user( array $args ) {
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            $args['author'] = get_current_user_id();
+        }
+        return $args;
+    }
+
     private function posts_to_items( array $posts ) {
         $items = array();
         foreach ( $posts as $post ) {
+            if ( ! current_user_can( 'read_post', $post->ID ) ) {
+                continue;
+            }
             $type = get_post_type_object( $post->post_type );
             $items[] = array(
                 'id'           => (int) $post->ID,
