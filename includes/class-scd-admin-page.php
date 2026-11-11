@@ -33,7 +33,7 @@ class SCD_Admin_Page {
 
     public function add_menu() {
         add_menu_page(
-            __( 'Scheduled Content', 'scheduled-content-dashboard' ),
+            __( 'Scheduled content', 'scheduled-content-dashboard' ),
             __( 'Scheduled', 'scheduled-content-dashboard' ),
             'edit_posts',
             self::PAGE_SLUG,

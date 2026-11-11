@@ -361,7 +361,7 @@ class SCD_Overview {
                             <td><?php echo esc_html( $item['author'] ); ?></td>
                         <?php endif; ?>
                         <?php if ( 'category' !== $group_by ) : ?>
-                            <td class="scd-ov-terms"><?php echo esc_html( $item['terms'] ? implode( ', ', $item['terms'] ) : '—' ); ?></td>
+                            <td class="scd-ov-terms"><?php echo esc_html( $item['terms'] ? implode( ', ', $item['terms'] ) : '-' ); ?></td>
                         <?php endif; ?>
                         <td class="scd-ov-when <?php echo $item['is_missed'] ? 'is-miss' : ''; ?>">
                             <?php echo esc_html( $item['when'] ); ?>

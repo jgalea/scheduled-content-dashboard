@@ -72,7 +72,7 @@ class Scheduled_Content_Dashboard {
     public function register_dashboard_widget() {
         wp_add_dashboard_widget(
             'scheduled_content_widget',
-            __( 'Scheduled Content', 'scheduled-content-dashboard' ),
+            __( 'Scheduled content', 'scheduled-content-dashboard' ),
             array( $this, 'render_widget' )
         );
     }
@@ -985,7 +985,7 @@ class Scheduled_Content_Dashboard {
                 'href'  => admin_url( 'admin.php?page=' . SCD_Admin_Page::PAGE_SLUG ),
                 'meta'  => array(
                     'class' => $counts['missed'] > 0 ? 'scd-has-missed' : '',
-                    'title' => __( 'Scheduled Content', 'scheduled-content-dashboard' ),
+                    'title' => __( 'Scheduled content', 'scheduled-content-dashboard' ),
                 ),
             )
         );

@@ -65,7 +65,7 @@ class SCD_Settings {
 
         add_settings_field(
             'item_limit',
-            __( 'Items per group', 'scheduled-content-dashboard' ),
+            __( 'Widget item limit', 'scheduled-content-dashboard' ),
             array( $this, 'render_item_limit' ),
             self::PAGE_SLUG,
             'scd_main'
