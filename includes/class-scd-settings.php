@@ -190,6 +190,7 @@ class SCD_Settings {
 
     public function sync_digest_schedule( $old, $new ) {
         $old = wp_parse_args( (array) $old, self::defaults() );
+        $new = wp_parse_args( (array) $new, self::defaults() );
         if ( (bool) $new['digest_enabled'] !== (bool) $old['digest_enabled'] || $new['digest_frequency'] !== $old['digest_frequency'] ) {
             SCD_Digest::reschedule( (bool) $new['digest_enabled'], $new['digest_frequency'] );
         }
