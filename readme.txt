@@ -4,7 +4,7 @@ Tags: scheduled, editorial calendar, content overview, dashboard widget, missed 
 Requires at least: 5.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.3
+Stable tag: 3.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -141,6 +141,15 @@ Yes. Each site has its own widget showing that site's scheduled content.
 5. Content Board from the free Pro add-on
 
 == Changelog ==
+
+= 3.2.0 =
+* Security: contributors can no longer schedule posts through the REST reschedule route or the calendar quick-create. Quick-create saves a draft when you can't publish.
+* Security: REST routes, the dashboard widget, the author filter and the admin bar only show other authors' content to users who can edit others' posts.
+* New: Unscheduled drafts list on the calendar. Drag a draft onto a day to schedule it, or drag a scheduled post onto the list to unschedule it.
+* New: quick-create lets you choose the post type and status, and quick edit includes the excerpt.
+* New: missed schedules are published from cron with a short grace period, logged, and reported in a dismissible notice.
+* Improved: dragging a scheduled post onto a past day is refused instead of publishing it, batch moves report partial failures, calendar dialogs are labelled and keyboard-trapped, and .ics exports include end times and links.
+* Improved: the calendar and overview follow the admin colour scheme.
 
 = 3.1.3 =
 * Readme updated to match what the plugin does, with new screenshots.
