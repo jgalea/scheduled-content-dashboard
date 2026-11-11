@@ -150,6 +150,9 @@ Yes. Each site has its own widget showing that site's scheduled content.
 * New: missed schedules are published from cron with a short grace period, logged, and reported in a dismissible notice.
 * Improved: dragging a scheduled post onto a past day is refused instead of publishing it, batch moves report partial failures, calendar dialogs are labelled and keyboard-trapped, and .ics exports include end times and links.
 * Improved: the calendar and overview follow the admin colour scheme.
+* Changed: contributors can no longer schedule their own drafts. Editors should review scheduled posts by authors who can't publish.
+* Changed: REST routes, the digest, the widget and the missed-schedule publisher cover the post types ticked in settings. Until settings are saved, every public post type that can be scheduled is covered.
+* Changed: missed schedules are published by a background publisher with no logged-in user, not on admin page loads.
 
 = 3.1.3 =
 * Readme updated to match what the plugin does, with new screenshots.
