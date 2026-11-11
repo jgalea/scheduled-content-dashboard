@@ -1184,6 +1184,9 @@ class Scheduled_Content_Dashboard {
             return;
         }
 
+        $previous_user = get_current_user_id();
+        wp_set_current_user( 0 );
+
         $published = array();
         foreach ( $query->posts as $post_id ) {
             wp_publish_post( $post_id );
@@ -1194,6 +1197,8 @@ class Scheduled_Content_Dashboard {
                 );
             }
         }
+
+        wp_set_current_user( $previous_user );
 
         if ( empty( $published ) ) {
             return;
