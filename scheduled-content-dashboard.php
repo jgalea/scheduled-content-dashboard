@@ -436,7 +436,7 @@ class Scheduled_Content_Dashboard {
             $item = array(
                 'id'              => $post_id,
                 'title'           => get_the_title(),
-                'edit_link'       => get_edit_post_link( $post_id, 'raw' ),
+                'edit_link'       => (string) get_edit_post_link( $post_id, 'raw' ),
                 'scheduled_date'  => get_the_date( 'Y-m-d H:i:s' ),
                 'date_formatted'  => get_the_date( 'M j, Y' ),
                 'time_formatted'  => get_the_date( 'g:i a' ),
