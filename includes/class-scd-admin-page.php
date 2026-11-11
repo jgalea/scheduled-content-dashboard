@@ -185,8 +185,8 @@ class SCD_Admin_Page {
                 letter-spacing:.04em; border:1px solid; border-radius:999px; padding:0 5px; line-height:14px; }
 
             .scd-layout { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; }
-            .scd-main { flex:1 1 640px; min-width:0; }
-            .scd-drawer { flex:1 1 220px; max-inline-size:300px; background:var(--scd-panel); border:1px solid var(--scd-line);
+            .scd-main { flex:999 1 640px; min-width:0; }
+            .scd-drawer { flex:1 1 240px; background:var(--scd-panel); border:1px solid var(--scd-line);
                 border-radius:var(--scd-radius); padding:12px; box-sizing:border-box; }
             .scd-drawer.is-over { outline:2px dashed var(--scd-accent); outline-offset:-2px; background:var(--scd-accent-weak); }
             .scd-drawer-title { margin:0 0 4px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; padding:0; }
