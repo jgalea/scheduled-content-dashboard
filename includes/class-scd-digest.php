@@ -102,7 +102,7 @@ class SCD_Digest {
 
         $query = new WP_Query(
             array(
-                'post_type'              => array_keys( get_post_types( array( 'public' => true ) ) ),
+                'post_type'              => SCD_Settings::post_types() ? SCD_Settings::post_types() : array( '__scd_no_types__' ),
                 'post_status'            => 'future',
                 'posts_per_page'         => 100,
                 'orderby'                => 'date',
@@ -126,7 +126,7 @@ class SCD_Digest {
     private function get_missed() {
         $query = new WP_Query(
             array(
-                'post_type'              => array_keys( get_post_types( array( 'public' => true ) ) ),
+                'post_type'              => SCD_Settings::post_types() ? SCD_Settings::post_types() : array( '__scd_no_types__' ),
                 'post_status'            => 'future',
                 'posts_per_page'         => 50,
                 'orderby'                => 'date',
@@ -136,7 +136,7 @@ class SCD_Digest {
                 'date_query'             => array(
                     array(
                         'column' => 'post_date_gmt',
-                        'before' => gmdate( 'Y-m-d H:i:s' ),
+                        'before' => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
                     ),
                 ),
             )
@@ -152,7 +152,7 @@ class SCD_Digest {
         ?>
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;color:#1d2327;">
             <h2 style="color:#1d2327;border-bottom:2px solid #2271b1;padding-bottom:8px;">
-                <?php echo esc_html( $site_name ); ?> — <?php esc_html_e( 'Scheduled Content', 'scheduled-content-dashboard' ); ?>
+                <?php echo esc_html( $site_name ); ?>: <?php esc_html_e( 'Scheduled content', 'scheduled-content-dashboard' ); ?>
             </h2>
 
             <?php if ( ! empty( $missed ) ) : ?>
@@ -168,8 +168,7 @@ class SCD_Digest {
                 <ul style="padding-left:18px;">
                     <?php foreach ( $missed as $post ) : ?>
                         <li style="margin-bottom:6px;">
-                            <a href="<?php echo esc_url( get_edit_post_link( $post->ID, 'raw' ) ); ?>"><?php echo esc_html( $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ) ); ?></a>
-                            — <?php echo esc_html( get_the_date( '', $post ) . ' ' . get_the_time( '', $post ) ); ?>
+                            <a href="<?php echo esc_url( get_edit_post_link( $post->ID, 'raw' ) ); ?>"><?php echo esc_html( $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ) ); ?></a>, <?php echo esc_html( get_the_date( '', $post ) . ' ' . get_the_time( '', $post ) ); ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
@@ -188,8 +187,7 @@ class SCD_Digest {
                 <ul style="padding-left:18px;">
                     <?php foreach ( $upcoming as $post ) : ?>
                         <li style="margin-bottom:6px;">
-                            <a href="<?php echo esc_url( get_edit_post_link( $post->ID, 'raw' ) ); ?>"><?php echo esc_html( $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ) ); ?></a>
-                            — <?php echo esc_html( get_the_date( '', $post ) . ' ' . get_the_time( '', $post ) ); ?>
+                            <a href="<?php echo esc_url( get_edit_post_link( $post->ID, 'raw' ) ); ?>"><?php echo esc_html( $post->post_title ? $post->post_title : __( '(no title)', 'scheduled-content-dashboard' ) ); ?></a>, <?php echo esc_html( get_the_date( '', $post ) . ' ' . get_the_time( '', $post ) ); ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

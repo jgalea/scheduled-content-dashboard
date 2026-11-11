@@ -45,10 +45,6 @@ class SCD_Overview {
             .scd-ov { --scd-panel:#ffffff; --scd-ink:#1d2230; --scd-soft:#5b6472; --scd-line:#e6e8ee;
                 --scd-line2:#d6dae3; --scd-accent:#4f46e5; --scd-miss:#dc2626; --scd-miss-weak:#fdecec; --scd-zebra:#fafbfd;
                 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--scd-ink); }
-            @media (prefers-color-scheme: dark) {
-                .scd-ov { --scd-panel:#161922; --scd-ink:#e8eaf0; --scd-soft:#9aa3b2; --scd-line:#252a36;
-                    --scd-line2:#313747; --scd-accent:#8b85f5; --scd-miss:#f87171; --scd-miss-weak:#2a1a1d; --scd-zebra:#12141c; }
-            }
 
             .scd-ov-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:14px 0; }
             .scd-ov-title { font-size:20px; font-weight:700; letter-spacing:-.02em; margin:0; }
@@ -146,8 +142,7 @@ class SCD_Overview {
     }
 
     private function base_types() {
-        $types = (array) SCD_Settings::get( 'included_post_types', array( 'post' ) );
-        $types = array_values( array_filter( $types, 'post_type_exists' ) );
+        $types = SCD_Settings::post_types();
         return $types ? $types : array( 'post' );
     }
 
@@ -242,7 +237,7 @@ class SCD_Overview {
 
                 <select name="scd_author" onchange="this.form.submit()" aria-label="<?php esc_attr_e( 'Filter by author', 'scheduled-content-dashboard' ); ?>">
                     <option value="0"><?php esc_html_e( 'All authors', 'scheduled-content-dashboard' ); ?></option>
-                    <?php foreach ( $this->author_choices() as $id => $name ) : ?>
+                    <?php foreach ( SCD_Settings::pipeline_authors( $this->base_types() ) as $id => $name ) : ?>
                         <option value="<?php echo (int) $id; ?>" <?php selected( $p['author'], $id ); ?>><?php echo esc_html( $name ); ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -361,7 +356,7 @@ class SCD_Overview {
                             <td><?php echo esc_html( $item['author'] ); ?></td>
                         <?php endif; ?>
                         <?php if ( 'category' !== $group_by ) : ?>
-                            <td class="scd-ov-terms"><?php echo esc_html( $item['terms'] ? implode( ', ', $item['terms'] ) : '—' ); ?></td>
+                            <td class="scd-ov-terms"><?php echo esc_html( $item['terms'] ? implode( ', ', $item['terms'] ) : '-' ); ?></td>
                         <?php endif; ?>
                         <td class="scd-ov-when <?php echo $item['is_missed'] ? 'is-miss' : ''; ?>">
                             <?php echo esc_html( $item['when'] ); ?>
@@ -428,7 +423,7 @@ class SCD_Overview {
                 'when'         => mysql2date( get_option( 'date_format' ) . ' · ' . get_option( 'time_format' ), $post->post_date ),
                 'terms'        => $this->term_names( $post ),
                 'is_missed'    => SCD_Statuses::can_miss( $post->post_status )
-                    && strtotime( get_gmt_from_date( $post->post_date ) . ' UTC' ) <= $now,
+                    && strtotime( get_gmt_from_date( $post->post_date ) . ' UTC' ) <= $now - SCD_Settings::MISSED_GRACE,
                 'can_publish'  => current_user_can( 'edit_post', $post->ID )
                     && $type_object && current_user_can( $type_object->cap->publish_posts ),
             );
@@ -517,24 +512,5 @@ class SCD_Overview {
             return $keys;
         }
         return array( $item['status'] => $item['status_label'] );
-    }
-
-    private function author_choices() {
-        $args = array(
-            'post_type'      => $this->base_types(),
-            'post_status'    => SCD_Statuses::selected(),
-            'posts_per_page' => 500,
-            'no_found_rows'  => true,
-        );
-        if ( ! current_user_can( 'edit_others_posts' ) ) {
-            $args['author'] = get_current_user_id();
-        }
-
-        $authors = array();
-        foreach ( get_posts( $args ) as $post ) {
-            $authors[ (int) $post->post_author ] = get_the_author_meta( 'display_name', $post->post_author );
-        }
-        asort( $authors );
-        return $authors;
     }
 }

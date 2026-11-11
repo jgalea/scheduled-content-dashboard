@@ -72,6 +72,12 @@
 
     // --- reschedule (single + batch) ----------------------------------------
 
+    function settle(promises) {
+        return Promise.all(promises.map(function (p) {
+            return p.then(function (v) { return { ok: true, value: v }; }, function (e) { return { ok: false, error: e }; });
+        }));
+    }
+
     function rescheduleMany(chips, toDate) {
         var moves = chips.map(function (chip) {
             return { chip: chip, id: chip.getAttribute('data-post-id'), time: chip.getAttribute('data-time'), from: chipDate(chip) };
@@ -82,19 +88,51 @@
             return;
         }
         showFeedback(cfg.rescheduling);
-        Promise.all(moves.map(function (m) {
+        settle(moves.map(function (m) {
             return send({ action: cfg.rescheduleAction, nonce: cfg.nonce, post_id: m.id, new_date: toDate, time: m.time })
                 .then(function () { placeChip(m.chip, toDate); });
-        })).then(function () {
-            showFeedback(cfg.success, 'success', function () {
-                Promise.all(moves.map(function (m) {
+        })).then(function (results) {
+            var done = moves.filter(function (m, i) { return results[i].ok; });
+            var failed = results.filter(function (r) { return !r.ok; });
+            if (!done.length) {
+                showFeedback(failed[0].error.message || cfg.failed, 'error');
+                return;
+            }
+            var msg = failed.length
+                ? (cfg.partial || '%1$d moved, %2$d failed.').replace('%1$d', done.length).replace('%2$d', failed.length)
+                : cfg.success;
+            showFeedback(msg, failed.length ? 'error' : 'success', function () {
+                settle(done.map(function (m) {
                     return send({ action: cfg.rescheduleAction, nonce: cfg.nonce, post_id: m.id, new_date: m.from, time: m.time })
                         .then(function () { placeChip(m.chip, m.from); });
-                })).catch(function (e) { showFeedback(e.message, 'error'); });
+                })).then(function (back) {
+                    var bad = back.filter(function (r) { return !r.ok; });
+                    if (bad.length) {
+                        showFeedback(bad[0].error.message || cfg.failed, 'error');
+                    }
+                });
             });
-        }).catch(function (e) {
-            showFeedback(e.message || cfg.failed, 'error');
         });
+    }
+
+    function reloadSoon(msg) {
+        showFeedback(msg);
+        setTimeout(function () { window.location.reload(); }, 900);
+    }
+
+    function scheduleDraft(el, toDate) {
+        showFeedback(cfg.rescheduling);
+        send({ action: cfg.scheduleAction, nonce: cfg.nonce, post_id: el.getAttribute('data-post-id'), new_date: toDate, time: '09:00' })
+            .then(function (d) {
+                reloadSoon(d.moved ? (cfg.movedTo || '%s').replace('%s', d.when) : (cfg.scheduledAt || '%s').replace('%s', d.when));
+            }).catch(function (e) { showFeedback(e.message || cfg.failed, 'error'); });
+    }
+
+    function unschedule(chip) {
+        showFeedback(cfg.rescheduling);
+        send({ action: cfg.unscheduleAction, nonce: cfg.nonce, post_id: chip.getAttribute('data-post-id') })
+            .then(function () { reloadSoon(cfg.unscheduled); })
+            .catch(function (e) { showFeedback(e.message || cfg.failed, 'error'); });
     }
 
     // --- selection -----------------------------------------------------------
@@ -156,13 +194,44 @@
         }
     }
 
+    var fieldSeq = 0;
+
     function field(labelText, input) {
+        var id = 'scd-f-' + (++fieldSeq);
+        input.id = id;
         var label = document.createElement('label');
+        label.setAttribute('for', id);
         label.textContent = labelText;
         var wrap = document.createDocumentFragment();
         wrap.appendChild(label);
         wrap.appendChild(input);
         return wrap;
+    }
+
+    function option(value, label) {
+        var o = document.createElement('option');
+        o.value = value;
+        o.textContent = label;
+        return o;
+    }
+
+    function trapFocus(e) {
+        if (e.key !== 'Tab' || !pop) {
+            return;
+        }
+        var f = pop.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href]');
+        if (!f.length) {
+            return;
+        }
+        var first = f[0];
+        var last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
     }
 
     function openPopover(mode, opts) {
@@ -173,9 +242,13 @@
         backdrop.className = 'scd-pop-backdrop';
         var panel = document.createElement('div');
         panel.className = 'scd-pop';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        panel.setAttribute('aria-labelledby', 'scd-pop-heading');
         backdrop.appendChild(panel);
 
         var heading = document.createElement('h3');
+        heading.id = 'scd-pop-heading';
         heading.textContent = mode === 'edit' ? (cfg.editHeading || 'Edit post') : (cfg.newHeading || 'New post');
         panel.appendChild(heading);
 
@@ -184,10 +257,70 @@
         title.value = opts.title || '';
         panel.appendChild(field(cfg.titleLabel || 'Title', title));
 
+        var typeSel = null;
+        var statusSel = null;
+        var types = cfg.types || [];
+        if (mode === 'create') {
+            if (types.length > 1) {
+                typeSel = document.createElement('select');
+                types.forEach(function (t) { typeSel.appendChild(option(t.name, t.label)); });
+                panel.appendChild(field(cfg.typeLabel || 'Post type', typeSel));
+            }
+            statusSel = document.createElement('select');
+            panel.appendChild(field(cfg.statusLabel || 'Status', statusSel));
+        }
+
         var when = document.createElement('input');
         when.type = 'datetime-local';
         when.value = opts.when || '';
-        panel.appendChild(field(cfg.whenLabel || 'Publish at', when));
+        var whenFields = field(cfg.whenLabel || 'Publish at', when);
+        var whenWrap = document.createElement('div');
+        whenWrap.appendChild(whenFields);
+        panel.appendChild(whenWrap);
+
+        var hint = document.createElement('p');
+        hint.className = 'scd-hint';
+        panel.appendChild(hint);
+
+        var excerpt = null;
+        if (mode === 'edit') {
+            excerpt = document.createElement('textarea');
+            excerpt.rows = 3;
+            excerpt.value = opts.chip.getAttribute('data-excerpt') || '';
+            panel.appendChild(field(cfg.excerptLabel || 'Excerpt', excerpt));
+        }
+
+        function currentType() {
+            var name = typeSel ? typeSel.value : (types[0] && types[0].name);
+            return types.filter(function (t) { return t.name === name; })[0] || types[0];
+        }
+
+        function syncCreateFields() {
+            if (!statusSel) {
+                return;
+            }
+            var canPublish = !!(currentType() && currentType().canPublish);
+            var prev = statusSel.value;
+            statusSel.textContent = '';
+            if (canPublish) {
+                statusSel.appendChild(option('future', cfg.statusFuture || 'Scheduled'));
+            }
+            statusSel.appendChild(option('draft', cfg.statusDraft || 'Draft'));
+            statusSel.value = prev === 'draft' || !canPublish ? 'draft' : 'future';
+            var isDraft = statusSel.value === 'draft';
+            whenWrap.hidden = isDraft;
+            hint.textContent = isDraft ? (cfg.draftHint || '') : (cfg.pastHint || '');
+        }
+
+        if (statusSel) {
+            if (typeSel) {
+                typeSel.addEventListener('change', syncCreateFields);
+            }
+            statusSel.addEventListener('change', syncCreateFields);
+            syncCreateFields();
+        } else if (mode === 'edit' && opts.chip.getAttribute('data-status') === 'future') {
+            hint.textContent = cfg.pastHint || '';
+        }
 
         var actions = document.createElement('div');
         actions.className = 'scd-pop-actions';
@@ -235,25 +368,38 @@
             if (mode === 'edit') {
                 save.disabled = true;
                 showFeedback(cfg.saving);
-                send({ action: cfg.editAction, nonce: cfg.nonce, post_id: opts.chip.getAttribute('data-post-id'), title: title.value, when: when.value })
+                send({ action: cfg.editAction, nonce: cfg.nonce, post_id: opts.chip.getAttribute('data-post-id'), title: title.value, when: when.value, excerpt: excerpt.value })
                     .then(function (d) {
                         var chip = opts.chip;
                         chip.setAttribute('data-title', d.title);
                         chip.setAttribute('data-time', d.time);
+                        chip.setAttribute('data-excerpt', d.excerpt || '');
                         chip.querySelector('.scd-ti').textContent = d.title;
-                        chip.querySelector('.scd-time').textContent = d.time.slice(0, 5);
+                        var timeEl = chip.querySelector('.scd-time');
+                        if (timeEl) {
+                            timeEl.textContent = d.time.slice(0, 5);
+                        }
                         if (d.date) {
                             placeChip(chip, d.date);
                         }
                         closePopover();
-                        showFeedback(cfg.success);
+                        showFeedback(d.moved ? (cfg.movedTo || '%s').replace('%s', d.when) : cfg.success);
                     }).catch(function (e) { save.disabled = false; showFeedback(e.message || cfg.saveFailed, 'error'); });
             } else {
                 var parts = (when.value || '').split('T');
                 save.disabled = true;
                 showFeedback(cfg.saving);
-                send({ action: cfg.createAction, nonce: cfg.nonce, date: parts[0], time: parts[1] || '09:00', title: title.value })
-                    .then(function () { window.location.reload(); })
+                send({
+                    action: cfg.createAction, nonce: cfg.nonce, date: parts[0], time: parts[1] || '09:00', title: title.value,
+                    post_type: currentType() ? currentType().name : '', status: statusSel.value
+                })
+                    .then(function (d) {
+                        if (d.status === 'draft') {
+                            reloadSoon(cfg.draftCreated);
+                        } else {
+                            reloadSoon(d.moved ? (cfg.movedTo || '%s').replace('%s', d.when) : (cfg.scheduledAt || '%s').replace('%s', d.when));
+                        }
+                    })
                     .catch(function (e) { save.disabled = false; showFeedback(e.message || cfg.createFailed, 'error'); });
             }
         });
@@ -266,6 +412,7 @@
             }
         });
 
+        backdrop.addEventListener('keydown', trapFocus);
         document.body.appendChild(backdrop);
         backdrop._return = opts.chip || opts.cell || null;
         pop = backdrop;
@@ -295,7 +442,7 @@
     }
 
     document.addEventListener('dragstart', function (e) {
-        var chip = e.target.closest ? e.target.closest('.scd-chip') : null;
+        var chip = e.target.closest ? e.target.closest('.scd-chip, .scd-dchip') : null;
         if (!chip) {
             return;
         }
@@ -347,6 +494,10 @@
         if (!toDate) {
             return;
         }
+        if (drag.el && drag.el.classList.contains('scd-dchip')) {
+            scheduleDraft(drag.el, toDate);
+            return;
+        }
         var chips;
         if (selected[drag.id] && selCount() > 1) {
             chips = Object.keys(selected).map(function (id) { return selected[id]; });
@@ -356,6 +507,27 @@
         }
         rescheduleMany(chips, toDate);
     });
+
+    var drawer = document.getElementById('scd-drawer');
+    if (drawer) {
+        drawer.addEventListener('dragover', function (e) {
+            if (drag.el && drag.el.classList.contains('scd-chip') && drag.el.getAttribute('data-status') === 'future') {
+                e.preventDefault();
+                drawer.classList.add('is-over');
+            }
+        });
+        drawer.addEventListener('dragleave', function () {
+            drawer.classList.remove('is-over');
+        });
+        drawer.addEventListener('drop', function (e) {
+            drawer.classList.remove('is-over');
+            if (drag.el && drag.el.classList.contains('scd-chip') && drag.el.getAttribute('data-status') === 'future') {
+                e.preventDefault();
+                e.stopPropagation();
+                unschedule(drag.el);
+            }
+        });
+    }
 
     // --- clicks --------------------------------------------------------------
 
