@@ -380,7 +380,7 @@ class Scheduled_Content_Dashboard {
     // ---------- Query helpers ----------
 
     private function build_query_args( $args_override = array() ) {
-        $limit = max( 1, (int) SCD_Settings::get( 'item_limit', 50 ) );
+        $limit = max( 1, (int) SCD_Settings::get( 'item_limit', 7 ) );
         $types = $this->get_active_post_types();
         if ( empty( $types ) ) {
             // Force zero results; WP_Query would otherwise fall back to 'post'.
@@ -409,6 +409,9 @@ class Scheduled_Content_Dashboard {
         }
 
         $args = array_merge( $args, $args_override );
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            $args['author'] = get_current_user_id();
+        }
 
         /**
          * Filters the query arguments for retrieving scheduled content.
@@ -525,7 +528,7 @@ class Scheduled_Content_Dashboard {
         if ( empty( $types ) ) {
             return array( 'total' => 0, 'missed' => 0 );
         }
-        $user_scope_args = $this->is_mine_only() ? array( 'author' => get_current_user_id() ) : array();
+        $user_scope_args = $this->is_mine_only() || ! current_user_can( 'edit_others_posts' ) ? array( 'author' => get_current_user_id() ) : array();
 
         $base = array(
             'post_type'              => $types,
@@ -624,7 +627,7 @@ class Scheduled_Content_Dashboard {
                 <?php
                 printf(
                     /* translators: %d: number of additional scheduled posts not shown in the widget. */
-                    esc_html( _n( '+%d more scheduled — open full calendar', '+%d more scheduled — open full calendar', $remaining, 'scheduled-content-dashboard' ) ),
+                    esc_html( _n( '+%d more scheduled, open full calendar', '+%d more scheduled, open full calendar', $remaining, 'scheduled-content-dashboard' ) ),
                     absint( $remaining )
                 );
                 ?>
@@ -727,6 +730,10 @@ class Scheduled_Content_Dashboard {
     }
 
     private function get_scheduling_authors() {
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            return array( wp_get_current_user() );
+        }
+
         $cache = wp_cache_get( 'scd_scheduling_authors', 'scd' );
         if ( false !== $cache ) {
             return $cache;
@@ -837,7 +844,8 @@ class Scheduled_Content_Dashboard {
 
     private function render_missed_item( $item ) {
         $title       = $item['title'] ? $item['title'] : __( '(no title)', 'scheduled-content-dashboard' );
-        $can_publish = current_user_can( 'edit_post', $item['id'] );
+        $type_obj    = get_post_type_object( $item['post_type'] );
+        $can_publish = $type_obj && current_user_can( $type_obj->cap->publish_posts );
         $action_url  = admin_url( 'admin-post.php' );
         ?>
         <div class="scheduled-content-item scheduled-content-item--missed">
@@ -856,7 +864,7 @@ class Scheduled_Content_Dashboard {
                     <?php
                     printf(
                         /* translators: %s: Author display name. */
-                        esc_html__( ' — by %s', 'scheduled-content-dashboard' ),
+                        esc_html__( ' by %s', 'scheduled-content-dashboard' ),
                         esc_html( $item['author'] )
                     );
                     ?>
@@ -895,7 +903,7 @@ class Scheduled_Content_Dashboard {
                     <?php
                     printf(
                         /* translators: %s: Author display name. */
-                        esc_html__( ' — by %s', 'scheduled-content-dashboard' ),
+                        esc_html__( ' by %s', 'scheduled-content-dashboard' ),
                         esc_html( $item['author'] )
                     );
                     ?>
@@ -909,8 +917,8 @@ class Scheduled_Content_Dashboard {
         $groups = array(
             'today'     => array( 'label' => __( 'Today', 'scheduled-content-dashboard' ), 'items' => array() ),
             'tomorrow'  => array( 'label' => __( 'Tomorrow', 'scheduled-content-dashboard' ), 'items' => array() ),
-            'this_week' => array( 'label' => __( 'This Week', 'scheduled-content-dashboard' ), 'items' => array() ),
-            'next_week' => array( 'label' => __( 'Next Week', 'scheduled-content-dashboard' ), 'items' => array() ),
+            'this_week' => array( 'label' => __( 'This week', 'scheduled-content-dashboard' ), 'items' => array() ),
+            'next_week' => array( 'label' => __( 'Next week', 'scheduled-content-dashboard' ), 'items' => array() ),
             'later'     => array( 'label' => __( 'Later', 'scheduled-content-dashboard' ), 'items' => array() ),
         );
 
