@@ -38,6 +38,10 @@ class Scheduled_Content_Dashboard {
     const TOGGLE_MINE_ACTION  = 'scd_toggle_mine';
     const TOGGLE_VIEW_ACTION  = 'scd_toggle_view';
     const AJAX_REFRESH_ACTION = 'scd_refresh_widget';
+    const AUTO_FIX_HOOK       = 'scd_auto_fix_missed';
+    const AUTO_FIX_LOG_OPTION = 'scd_auto_fix_log';
+    const DISMISS_FIX_ACTION  = 'scd_dismiss_fix_notice';
+    const FIX_SEEN_META_KEY   = '_scd_fix_seen';
 
     private static $instance = null;
 
@@ -65,7 +69,12 @@ class Scheduled_Content_Dashboard {
         add_action( 'admin_post_' . self::TOGGLE_MINE_ACTION, array( $this, 'handle_mine_toggle' ) );
         add_action( 'admin_post_' . self::TOGGLE_VIEW_ACTION, array( $this, 'handle_view_toggle' ) );
         add_action( 'wp_ajax_' . self::AJAX_REFRESH_ACTION, array( $this, 'handle_ajax_refresh' ) );
-        add_action( 'admin_init', array( $this, 'maybe_auto_fix_missed' ) );
+        add_action( 'shutdown', array( $this, 'maybe_auto_fix_missed' ) );
+        add_action( self::AUTO_FIX_HOOK, array( $this, 'maybe_auto_fix_missed' ) );
+        add_action( 'init', array( $this, 'schedule_auto_fix' ) );
+        add_filter( 'cron_schedules', array( $this, 'add_cron_interval' ) );
+        add_action( 'admin_notices', array( $this, 'render_auto_fix_notice' ) );
+        add_action( 'admin_post_' . self::DISMISS_FIX_ACTION, array( $this, 'handle_dismiss_fix_notice' ) );
         add_action( 'admin_init', array( $this, 'redirect_legacy_settings_url' ) );
     }
 
@@ -87,6 +96,7 @@ class Scheduled_Content_Dashboard {
 
     public static function deactivate() {
         wp_clear_scheduled_hook( SCD_Digest::HOOK );
+        wp_clear_scheduled_hook( self::AUTO_FIX_HOOK );
     }
 
     public function enqueue_styles( $hook ) {
@@ -350,17 +360,8 @@ class Scheduled_Content_Dashboard {
         return $view;
     }
 
-    private function get_active_post_types() {
-        $configured = (array) SCD_Settings::get( 'included_post_types', array() );
-        $public     = array_keys( get_post_types( array( 'public' => true ) ) );
-
-        // Intersect with currently-registered public types so an old saved CPT
-        // that's since been deregistered doesn't leak into queries.
-        return array_values( array_intersect( $configured, $public ) );
-    }
-
     private function get_filter_state() {
-        $types = $this->get_active_post_types();
+        $types = SCD_Settings::post_types();
 
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only filters, no state change.
         $type = isset( $_GET['scd_type'] ) ? sanitize_key( wp_unslash( $_GET['scd_type'] ) ) : '';
@@ -381,7 +382,7 @@ class Scheduled_Content_Dashboard {
 
     private function build_query_args( $args_override = array() ) {
         $limit = max( 1, (int) SCD_Settings::get( 'item_limit', 7 ) );
-        $types = $this->get_active_post_types();
+        $types = SCD_Settings::post_types();
         if ( empty( $types ) ) {
             // Force zero results; WP_Query would otherwise fall back to 'post'.
             $types = array( '__scd_no_types__' );
@@ -459,7 +460,7 @@ class Scheduled_Content_Dashboard {
                 'date_query' => array(
                     array(
                         'column'    => 'post_date_gmt',
-                        'after'     => gmdate( 'Y-m-d H:i:s' ),
+                        'after'     => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
                         'inclusive' => false,
                     ),
                 ),
@@ -474,7 +475,7 @@ class Scheduled_Content_Dashboard {
                 'date_query' => array(
                     array(
                         'column' => 'post_date_gmt',
-                        'before' => gmdate( 'Y-m-d H:i:s' ),
+                        'before' => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
                     ),
                 ),
             )
@@ -517,14 +518,14 @@ class Scheduled_Content_Dashboard {
         $items   = $this->map_query_to_items( new WP_Query( $args ), true );
         $now_gmt = time();
         foreach ( $items as &$item ) {
-            $item['is_missed'] = get_post_time( 'U', true, $item['id'] ) <= $now_gmt;
+            $item['is_missed'] = get_post_time( 'U', true, $item['id'] ) <= $now_gmt - SCD_Settings::MISSED_GRACE;
         }
         unset( $item );
         return $items;
     }
 
     private function get_counts() {
-        $types = $this->get_active_post_types();
+        $types = SCD_Settings::post_types();
         if ( empty( $types ) ) {
             return array( 'total' => 0, 'missed' => 0 );
         }
@@ -550,7 +551,7 @@ class Scheduled_Content_Dashboard {
                     'date_query' => array(
                         array(
                             'column' => 'post_date_gmt',
-                            'before' => gmdate( 'Y-m-d H:i:s' ),
+                            'before' => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
                         ),
                     ),
                 )
@@ -666,7 +667,7 @@ class Scheduled_Content_Dashboard {
                     <form method="get" action="<?php echo esc_url( admin_url( 'index.php' ) ); ?>">
                         <select name="scd_type">
                             <option value=""><?php esc_html_e( 'All post types', 'scheduled-content-dashboard' ); ?></option>
-                            <?php foreach ( $this->get_active_post_types() as $type ) :
+                            <?php foreach ( SCD_Settings::post_types() as $type ) :
                                 $obj = get_post_type_object( $type ); ?>
                                 <option value="<?php echo esc_attr( $type ); ?>" <?php selected( $filters['type'], $type ); ?>>
                                     <?php echo esc_html( $obj ? $obj->labels->singular_name : $type ); ?>
@@ -740,7 +741,7 @@ class Scheduled_Content_Dashboard {
         }
 
         global $wpdb;
-        $types  = $this->get_active_post_types();
+        $types  = SCD_Settings::post_types();
         if ( empty( $types ) ) {
             return array();
         }
@@ -1115,13 +1116,27 @@ class Scheduled_Content_Dashboard {
         exit;
     }
 
+    public function add_cron_interval( $schedules ) {
+        $schedules['scd_ten_minutes'] = array(
+            'interval' => self::AUTO_FIX_INTERVAL,
+            'display'  => __( 'Every 10 minutes', 'scheduled-content-dashboard' ),
+        );
+        return $schedules;
+    }
+
+    public function schedule_auto_fix() {
+        if ( ! wp_next_scheduled( self::AUTO_FIX_HOOK ) ) {
+            wp_schedule_event( time() + self::AUTO_FIX_INTERVAL, 'scd_ten_minutes', self::AUTO_FIX_HOOK );
+        }
+    }
+
     /**
-     * Auto-publish missed scheduled posts on admin page loads.
+     * Publishes scheduled posts WordPress failed to publish on time.
      *
-     * WordPress occasionally fails to fire wp-cron and leaves posts in `future`
-     * status past their publish date. This runs once per AUTO_FIX_INTERVAL seconds
-     * and publishes anything stuck. Disable via settings UI or the
-     * `scheduled_content_dashboard_auto_fix_missed` filter.
+     * Runs from a recurring cron event and, when cron isn't firing, from a
+     * throttled shutdown hook so it doesn't depend on who is visiting. Disable
+     * via the settings page or the `scheduled_content_dashboard_auto_fix_missed`
+     * filter.
      */
     public function maybe_auto_fix_missed() {
         $setting_enabled = (int) SCD_Settings::get( 'auto_fix_enabled', 1 ) === 1;
@@ -1142,9 +1157,14 @@ class Scheduled_Content_Dashboard {
 
         set_transient( self::AUTO_FIX_TRANSIENT, time(), self::AUTO_FIX_INTERVAL );
 
+        $types = SCD_Settings::post_types();
+        if ( empty( $types ) ) {
+            return;
+        }
+
         $query = new WP_Query(
             array(
-                'post_type'              => array_keys( get_post_types( array( 'public' => true ) ) ),
+                'post_type'              => $types,
                 'post_status'            => 'future',
                 'posts_per_page'         => 20,
                 'fields'                 => 'ids',
@@ -1154,7 +1174,7 @@ class Scheduled_Content_Dashboard {
                 'date_query'             => array(
                     array(
                         'column' => 'post_date_gmt',
-                        'before' => gmdate( 'Y-m-d H:i:s' ),
+                        'before' => gmdate( 'Y-m-d H:i:s', time() - SCD_Settings::MISSED_GRACE ),
                     ),
                 ),
             )
@@ -1164,9 +1184,96 @@ class Scheduled_Content_Dashboard {
             return;
         }
 
+        $published = array();
         foreach ( $query->posts as $post_id ) {
             wp_publish_post( $post_id );
+            if ( 'publish' === get_post_status( $post_id ) ) {
+                $published[] = array(
+                    'id'    => (int) $post_id,
+                    'title' => get_the_title( $post_id ),
+                );
+            }
         }
+
+        if ( empty( $published ) ) {
+            return;
+        }
+
+        $log   = (array) get_option( self::AUTO_FIX_LOG_OPTION, array() );
+        $log[] = array(
+            'time'  => time(),
+            'posts' => $published,
+        );
+        update_option( self::AUTO_FIX_LOG_OPTION, array_slice( $log, -20 ), false );
+
+        /**
+         * Fires after missed scheduled posts were published.
+         *
+         * @param int[] $post_ids IDs of the posts that were published.
+         */
+        do_action( 'scheduled_content_dashboard_missed_published', wp_list_pluck( $published, 'id' ) );
+    }
+
+    public function render_auto_fix_notice() {
+        $screen = get_current_screen();
+        if ( ! $screen || ! current_user_can( 'edit_others_posts' ) ) {
+            return;
+        }
+        $is_ours = 'dashboard' === $screen->id || false !== strpos( $screen->id, 'scd-' ) || false !== strpos( $screen->id, 'scheduled-content' );
+        if ( ! $is_ours ) {
+            return;
+        }
+
+        $seen   = (int) get_user_meta( get_current_user_id(), self::FIX_SEEN_META_KEY, true );
+        $items  = array();
+        $latest = 0;
+        foreach ( (array) get_option( self::AUTO_FIX_LOG_OPTION, array() ) as $entry ) {
+            if ( (int) $entry['time'] > $seen ) {
+                $items  = array_merge( $items, $entry['posts'] );
+                $latest = max( $latest, (int) $entry['time'] );
+            }
+        }
+        if ( empty( $items ) ) {
+            return;
+        }
+
+        $titles = array();
+        foreach ( $items as $item ) {
+            $titles[] = $item['title'] ? $item['title'] : __( '(no title)', 'scheduled-content-dashboard' );
+        }
+        $dismiss = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action' => self::DISMISS_FIX_ACTION,
+                    'until'  => $latest,
+                ),
+                admin_url( 'admin-post.php' )
+            ),
+            self::DISMISS_FIX_ACTION
+        );
+
+        printf(
+            '<div class="notice notice-info"><p>%1$s %2$s <a href="%3$s">%4$s</a></p></div>',
+            esc_html(
+                sprintf(
+                    /* translators: %d: number of posts. */
+                    _n( 'Published %d post that missed its schedule:', 'Published %d posts that missed their schedule:', count( $titles ), 'scheduled-content-dashboard' ),
+                    count( $titles )
+                )
+            ),
+            esc_html( implode( ', ', $titles ) ),
+            esc_url( $dismiss ),
+            esc_html__( 'Dismiss', 'scheduled-content-dashboard' )
+        );
+    }
+
+    public function handle_dismiss_fix_notice() {
+        check_admin_referer( self::DISMISS_FIX_ACTION );
+        if ( current_user_can( 'edit_others_posts' ) && isset( $_GET['until'] ) ) {
+            update_user_meta( get_current_user_id(), self::FIX_SEEN_META_KEY, absint( $_GET['until'] ) );
+        }
+        wp_safe_redirect( wp_get_referer() ? wp_get_referer() : admin_url( 'index.php' ) );
+        exit;
     }
 }
 

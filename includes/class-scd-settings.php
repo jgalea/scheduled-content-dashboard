@@ -17,6 +17,8 @@ class SCD_Settings {
         $self = new self();
         add_action( 'admin_init', array( $self, 'register_settings' ) );
         add_action( 'admin_menu', array( $self, 'add_menu' ) );
+        add_action( 'update_option_' . self::OPTION_NAME, array( $self, 'sync_digest_schedule' ), 10, 2 );
+        add_action( 'add_option_' . self::OPTION_NAME, array( $self, 'sync_digest_schedule_on_add' ), 10, 2 );
     }
 
     public static function get( $key, $default = null ) {
@@ -28,6 +30,30 @@ class SCD_Settings {
         $configured = (array) self::get( 'included_post_types', array() );
         $public     = array_keys( get_post_types( array( 'public' => true ) ) );
         return array_values( array_intersect( $configured, $public ) );
+    }
+
+    public static function pipeline_authors( array $types ) {
+        global $wpdb;
+
+        $statuses = SCD_Statuses::selected();
+        $in_types = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+        $in_stati = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+        $sql      = "SELECT DISTINCT post_author FROM {$wpdb->posts} WHERE post_type IN ({$in_types}) AND post_status IN ({$in_stati})";
+        $values   = array_merge( $types, $statuses );
+        // Don't reveal other authors to users who can't edit others' posts.
+        if ( ! current_user_can( 'edit_others_posts' ) ) {
+            $sql     .= ' AND post_author = %d';
+            $values[] = get_current_user_id();
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders are built from the counts above.
+        $ids = $wpdb->get_col( $wpdb->prepare( $sql, $values ) );
+
+        $authors = array();
+        foreach ( $ids as $id ) {
+            $authors[ (int) $id ] = get_the_author_meta( 'display_name', (int) $id );
+        }
+        asort( $authors );
+        return $authors;
     }
 
     public static function defaults() {
@@ -155,6 +181,17 @@ class SCD_Settings {
         echo '<p>' . esc_html__( 'Optional email summary of scheduled, missed, and upcoming posts.', 'scheduled-content-dashboard' ) . '</p>';
     }
 
+    public function sync_digest_schedule( $old, $new ) {
+        $old = wp_parse_args( (array) $old, self::defaults() );
+        if ( (bool) $new['digest_enabled'] !== (bool) $old['digest_enabled'] || $new['digest_frequency'] !== $old['digest_frequency'] ) {
+            SCD_Digest::reschedule( (bool) $new['digest_enabled'], $new['digest_frequency'] );
+        }
+    }
+
+    public function sync_digest_schedule_on_add( $option, $value ) {
+        $this->sync_digest_schedule( array(), $value );
+    }
+
     public function sanitize( $input ) {
         $defaults = self::defaults();
         $clean    = array();
@@ -210,11 +247,6 @@ class SCD_Settings {
             }
         }
         $clean['digest_recipients'] = implode( ', ', $emails );
-
-        if ( (bool) $clean['digest_enabled'] !== (bool) self::get( 'digest_enabled' )
-            || $clean['digest_frequency'] !== self::get( 'digest_frequency' ) ) {
-            SCD_Digest::reschedule( (bool) $clean['digest_enabled'], $clean['digest_frequency'] );
-        }
 
         return $clean;
     }

@@ -351,7 +351,7 @@ class SCD_Admin_Page {
                 </select>
                 <select name="scd_author" onchange="this.form.submit()" aria-label="<?php esc_attr_e( 'Filter by author', 'scheduled-content-dashboard' ); ?>">
                     <option value="0"><?php esc_html_e( 'All authors', 'scheduled-content-dashboard' ); ?></option>
-                    <?php foreach ( $this->author_choices() as $id => $name ) : ?>
+                    <?php foreach ( SCD_Settings::pipeline_authors( $this->base_types() ) as $id => $name ) : ?>
                         <option value="<?php echo (int) $id; ?>" <?php selected( $p['author'], $id ); ?>><?php echo esc_html( $name ); ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -594,32 +594,6 @@ class SCD_Admin_Page {
         }
 
         return $grouped;
-    }
-
-    /** Authors who currently have pipeline content in the base types. */
-    private function author_choices() {
-        global $wpdb;
-
-        $types    = $this->base_types();
-        $statuses = SCD_Statuses::selected();
-        $in_types = implode( ',', array_fill( 0, count( $types ), '%s' ) );
-        $in_stati = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
-        $sql      = "SELECT DISTINCT post_author FROM {$wpdb->posts} WHERE post_type IN ({$in_types}) AND post_status IN ({$in_stati})";
-        $values   = array_merge( $types, $statuses );
-        // Don't reveal other authors to users who can't edit others' posts.
-        if ( ! current_user_can( 'edit_others_posts' ) ) {
-            $sql     .= ' AND post_author = %d';
-            $values[] = get_current_user_id();
-        }
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders are built from the counts above.
-        $ids = $wpdb->get_col( $wpdb->prepare( $sql, $values ) );
-
-        $authors = array();
-        foreach ( $ids as $id ) {
-            $authors[ (int) $id ] = get_the_author_meta( 'display_name', (int) $id );
-        }
-        asort( $authors );
-        return $authors;
     }
 
     /** Stable color for a post type. */
