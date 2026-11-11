@@ -20,6 +20,8 @@ class SCD_Admin_Page {
     /** Per-day visible chip cap in month view before "+N more". */
     const MONTH_CAP = 4;
 
+    private $truncated = false;
+
     public static function init() {
         $self = new self();
         add_action( 'admin_menu', array( $self, 'add_menu' ), 5 );
@@ -112,12 +114,6 @@ class SCD_Admin_Page {
                 --scd-today:#f3f1ff; --scd-miss:#dc2626; --scd-miss-weak:#fdecec; --scd-out:#f7f8fa; --scd-wknd:#fbfbfd;
                 --scd-radius:10px;
                 font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; color:var(--scd-ink); }
-            @media (prefers-color-scheme: dark) {
-                .scd-cal, .scd-pop-backdrop { --scd-bg:#0e1016; --scd-panel:#161922; --scd-ink:#e8eaf0; --scd-soft:#9aa3b2;
-                    --scd-line:#252a36; --scd-line2:#313747; --scd-accent:#8b85f5; --scd-accent-weak:#20223a;
-                    --scd-today:#1b1c30; --scd-miss:#f87171; --scd-miss-weak:#2a1a1d; --scd-out:#12141c; --scd-wknd:#13151d; }
-                .scd-cal .scd-chip .scd-ti { color:var(--scd-ink); }
-            }
 
             .scd-cal-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:14px 0 14px; }
             .scd-cal-title { font-size:20px; font-weight:700; letter-spacing:-.02em; margin:0; }
@@ -170,7 +166,8 @@ class SCD_Admin_Page {
             .scd-more { font-size:11px; font-weight:600; color:var(--scd-accent); cursor:pointer; background:none; border:0; padding:1px 2px; text-align:left; }
             .scd-add { margin-top:auto; border:1px dashed var(--scd-line2); border-radius:7px; color:var(--scd-soft);
                 font-size:11.5px; text-align:center; padding:5px 0; cursor:pointer; opacity:0; transition:opacity .12s; background:none; width:100%; }
-            .scd-day:hover .scd-add { opacity:1; }
+            .scd-day:hover .scd-add, .scd-add:focus-visible, .scd-day:focus-within .scd-add { opacity:1; }
+            @media (hover:none) { .scd-add { opacity:1; } }
 
             .scd-legend { display:flex; flex-wrap:wrap; gap:16px; margin-top:14px; font-size:12px; color:var(--scd-soft); align-items:center; }
             .scd-legend span { display:inline-flex; align-items:center; gap:6px; }
@@ -240,8 +237,7 @@ class SCD_Admin_Page {
 
     /** Post types the calendar considers, from settings (fallback to post). */
     private function base_types() {
-        $types = (array) SCD_Settings::get( 'included_post_types', array( 'post' ) );
-        $types = array_values( array_filter( $types, 'post_type_exists' ) );
+        $types = SCD_Settings::post_types();
         return $types ? $types : array( 'post' );
     }
 
@@ -263,12 +259,15 @@ class SCD_Admin_Page {
         }
 
         $items_by_day = $this->build_items_by_day( $start, $end, $p['type'], $p['author'], $p['status'] );
-        $authors      = $this->author_choices();
         $base_url     = menu_page_url( self::PAGE_SLUG, false );
 
         ?>
         <div class="wrap scd-cal">
             <?php $this->render_toolbar( $p, $base_url, $start ); ?>
+
+            <?php if ( $this->truncated ) : ?>
+                <div class="notice notice-warning inline"><p><?php esc_html_e( 'This range has more posts than the calendar can show. Narrow it with the filters above or switch to week view.', 'scheduled-content-dashboard' ); ?></p></div>
+            <?php endif; ?>
 
             <?php
             if ( 'week' === $p['view'] ) {
@@ -455,7 +454,7 @@ class SCD_Admin_Page {
         $overflow  = max( 0, count( $items ) - $cap );
 
         echo '<div class="' . esc_attr( implode( ' ', $classes ) ) . '" data-date="' . esc_attr( $date_key ) . '"'
-            . ' tabindex="0" role="gridcell" aria-label="' . esc_attr( mysql2date( 'l, F j', $date_key ) ) . '">';
+            . ' tabindex="0" role="group" aria-label="' . esc_attr( mysql2date( 'l, F j', $date_key ) ) . '">';
         echo '<div class="scd-daynum">' . (int) $day_num . '</div>';
 
         $idx = 0;
@@ -569,8 +568,9 @@ class SCD_Admin_Page {
             $args['author'] = get_current_user_id();
         }
 
-        $posts   = get_posts( $args );
-        $now_gmt = time();
+        $posts           = get_posts( $args );
+        $this->truncated = count( $posts ) >= $args['posts_per_page'];
+        $now_gmt         = time();
         $grouped = array();
 
         foreach ( $posts as $post ) {
@@ -589,7 +589,7 @@ class SCD_Admin_Page {
                 'status'         => $post->post_status,
                 'status_label'   => SCD_Statuses::label( $post->post_status ),
                 'is_missed'      => SCD_Statuses::can_miss( $post->post_status )
-                    && strtotime( get_gmt_from_date( $post->post_date ) . ' UTC' ) <= $now_gmt,
+                    && strtotime( get_gmt_from_date( $post->post_date ) . ' UTC' ) <= $now_gmt - SCD_Settings::MISSED_GRACE,
             );
         }
 
@@ -598,19 +598,25 @@ class SCD_Admin_Page {
 
     /** Authors who currently have pipeline content in the base types. */
     private function author_choices() {
-        $args = array(
-            'post_type'      => $this->base_types(),
-            'post_status'    => SCD_Statuses::selected(),
-            'posts_per_page' => 500,
-            'no_found_rows'  => true,
-        );
+        global $wpdb;
+
+        $types    = $this->base_types();
+        $statuses = SCD_Statuses::selected();
+        $in_types = implode( ',', array_fill( 0, count( $types ), '%s' ) );
+        $in_stati = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+        $sql      = "SELECT DISTINCT post_author FROM {$wpdb->posts} WHERE post_type IN ({$in_types}) AND post_status IN ({$in_stati})";
+        $values   = array_merge( $types, $statuses );
         // Don't reveal other authors to users who can't edit others' posts.
         if ( ! current_user_can( 'edit_others_posts' ) ) {
-            $args['author'] = get_current_user_id();
+            $sql     .= ' AND post_author = %d';
+            $values[] = get_current_user_id();
         }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared -- placeholders are built from the counts above.
+        $ids = $wpdb->get_col( $wpdb->prepare( $sql, $values ) );
+
         $authors = array();
-        foreach ( get_posts( $args ) as $post ) {
-            $authors[ (int) $post->post_author ] = get_the_author_meta( 'display_name', $post->post_author );
+        foreach ( $ids as $id ) {
+            $authors[ (int) $id ] = get_the_author_meta( 'display_name', (int) $id );
         }
         asort( $authors );
         return $authors;
@@ -694,6 +700,10 @@ class SCD_Admin_Page {
         $post = get_post( $post_id );
         if ( ! $post || ! SCD_Statuses::is_selected( $post->post_status ) ) {
             wp_send_json_error( array( 'message' => __( 'This post is not in the content pipeline.', 'scheduled-content-dashboard' ) ), 400 );
+        }
+
+        if ( 'future' === $post->post_status && strtotime( get_gmt_from_date( $local ) . ' UTC' ) <= time() ) {
+            wp_send_json_error( array( 'message' => __( 'Scheduled posts can only move to a time in the future.', 'scheduled-content-dashboard' ) ), 400 );
         }
 
         // Keep whatever status the post already has: moving a draft changes its
@@ -867,8 +877,10 @@ class SCD_Admin_Page {
                 $lines[] = 'UID:scd-' . $item['id'] . '@' . wp_parse_url( home_url(), PHP_URL_HOST );
                 $lines[] = 'DTSTAMP:' . $dtstamp;
                 $lines[] = 'DTSTART:' . $dt;
+                $lines[] = 'DTEND:' . gmdate( 'Ymd\THis\Z', strtotime( $dt ) + HOUR_IN_SECONDS );
                 $meta    = 'future' === $item['status'] ? $item['type_label'] : $item['type_label'] . ', ' . $item['status_label'];
                 $lines[] = 'SUMMARY:' . $this->ics_escape( $item['title'] . ' (' . $meta . ')' );
+                $lines[] = 'URL:' . $item['edit_link'];
                 $lines[] = 'END:VEVENT';
             }
         }
@@ -877,8 +889,23 @@ class SCD_Admin_Page {
         nocache_headers();
         header( 'Content-Type: text/calendar; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="scheduled-' . $month . '.ics"' );
-        echo implode( "\r\n", $lines ) . "\r\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+        echo implode( "\r\n", array_map( array( $this, 'ics_fold' ), $lines ) ) . "\r\n"; // phpcs:ignore WordPress.Security.EscapeOutput
         exit;
+    }
+
+    private function ics_fold( $line ) {
+        $out   = '';
+        $limit = 75;
+        while ( strlen( $line ) > $limit ) {
+            $cut = $limit;
+            while ( $cut > 0 && ( ord( $line[ $cut ] ) & 0xC0 ) === 0x80 ) {
+                --$cut;
+            }
+            $out  .= substr( $line, 0, $cut ) . "\r\n ";
+            $line  = substr( $line, $cut );
+            $limit = 74;
+        }
+        return $out . $line;
     }
 
     private function ics_escape( $text ) {
